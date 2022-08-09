@@ -1,5 +1,6 @@
 import ast
 import io
+import sys
 import tokenize
 from typing import Set
 
@@ -248,11 +249,14 @@ foo\\
 
 # BAD (don't use parentheses when already using \ for line continuation)
 def test_call_chain_escaped_line_break_2():
-    s = """(   \\
+    s = """( \\
     foo   \\
     )  .  bar   (   baz   )
     """
-    assert len(_results(s)) == 1
+    if "3.10" in sys.version:
+        assert not _results(s)
+    else:
+        assert len(_results(s)) == 1
 
 
 # BAD (redundant parentheses)
