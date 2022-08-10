@@ -249,11 +249,11 @@ foo\\
 
 # BAD (don't use parentheses when already using \ for line continuation)
 def test_call_chain_escaped_line_break_2():
-    s = """( \\
+    s = """(   \\
     foo   \\
     )  .  bar   (   baz   )
     """
-    if "3.10" in sys.version:
+    if sys.version_info >= (3, 10):
         assert not _results(s)
     else:
         assert len(_results(s)) == 1
