@@ -1,6 +1,5 @@
 import ast
 import importlib.metadata
-
 from typing import (
     Any,
     Generator,
