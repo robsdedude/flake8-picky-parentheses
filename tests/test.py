@@ -1,12 +1,13 @@
 import ast
 import io
+import sys
 import tokenize
 from typing import Set
 
 from parentheses_checker import Plugin
 import pytest
 
-
+#just trying to creat pull request
 def _results(s: str) -> Set[str]:
     def read_lines():
         return s.splitlines(keepends=True)
@@ -252,7 +253,10 @@ def test_call_chain_escaped_line_break_2():
     foo   \\
     )  .  bar   (   baz   )
     """
-    assert len(_results(s)) == 1
+    if sys.version_info >= (3, 10):
+        assert not _results(s)
+    else:
+        assert len(_results(s)) == 1
 
 
 # BAD (redundant parentheses)
