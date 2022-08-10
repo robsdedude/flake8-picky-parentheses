@@ -2,8 +2,6 @@
 name: test
 
 on:
-  push:
-    branches: [ "test_branch" ]
   pull_request:
     types: [opened, reopened, edited]
     
@@ -11,5 +9,5 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - run: $HOME/tests/test.py
+      - run: tests/test.py
 
