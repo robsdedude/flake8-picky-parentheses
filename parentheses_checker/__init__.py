@@ -102,6 +102,9 @@ class Plugin:
             self.problems.append((*coords[0], msg))
 
 
+OP_TOKEN_CODE = 54 if sys.version_info >= (3, 8) else 53
+
+
 def find_parens_coords(token):
     # return parentheses paris in the form
     # (
@@ -118,7 +121,7 @@ def find_parens_coords(token):
     for i in range(len(token)):
         first_in_line = last_line != token[i].start[0]
         last_line = token[i].end[0]
-        if token[i].type == 53:
+        if token[i].type == OP_TOKEN_CODE:
             if token[i].string in open_list:
                 if not first_in_line:
                     opening_stack.append([token[i].start, token[i].end[1],
