@@ -6,7 +6,11 @@
 
 ### Installation
 
-`IDK)`
+To download latest version of program, use:
+
+```sh
+https://github.com/robsdedude/flake8-redundant-parentheses.git
+```
 
 ### Usage
 
@@ -18,6 +22,7 @@ Program will not complain about first two lines, because in first case
 parentheses are redundant, but helps readability and in second case we just 
 don't have parentheses. In next three lines there are examples where 
 parentheses are redundant and can not help readability.
+
 ```sh
 a = ("a",)     #GOOD
 a = "a",       #GOOD
@@ -26,4 +31,17 @@ a = (("a"),)   #BAD
 a = (("a",))   #BAD
 foo(("a",))    #GOOD
 foo("a",)      #BAD
+```
+
+In code there is an exception for parentheses in mathematical and logical
+constructs if parentheses are not needed, but they help, to divide parts 
+of algorithm and show sequence of actions.
+
+```sh
+#ALL GOOD
+a = (1 + 2) % 3
+a = 1 and (2 + 3)
+a = (1 / 2) * 3
+a = not (1 + 2)
+a = (not 1) + 2
 ```
