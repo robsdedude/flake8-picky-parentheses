@@ -1,5 +1,6 @@
 import ast
-import importlib.metadata
+import importlib_metadata as metadata
+#import importlib.metadata
 from typing import (
     Any,
     Generator,
@@ -11,7 +12,7 @@ from typing import (
 
 class Plugin:
     name = __name__
-    version = importlib.metadata.version("flake8_redundant_parentheses")
+    version = metadata.version("flake8_redundant_parentheses")
 
     def __init__(self, tree: ast.AST, read_lines, file_tokens):
         self.source_code = "".join(read_lines())
@@ -41,8 +42,7 @@ class Plugin:
         open_, _, _, close = parens_coords
         node_start = (node.lineno, node.col_offset)
         # -1: accounting for width of closing parenthesis
-        node_end = (node.end_lineno, node.end_col_offset - 1)
-        return node_start >= open_ and node_end <= close
+        return node_start > open_
 
     def check(self) -> None:
         msg = "PAR001: Too many parentheses"
@@ -71,9 +71,9 @@ class Plugin:
                     for elts in target.elts:
                         tuple_coords = (target.lineno, target.col_offset)
                         elts_coords = (elts.lineno, elts.col_offset)
-                        if tuple_coords < elts_coords:
+                        if tuple_coords <= elts_coords:
                             for coords in self.parens_coords:
-                                if coords[0] == tuple_coords:
+                                if coords[0] <= tuple_coords:
                                     exceptions.append(coords)
                                     break
                             self.problems.append((
@@ -86,7 +86,7 @@ class Plugin:
             for node_tup in ast.iter_child_nodes(node):
                 if not isinstance(node_tup, ast.Tuple):
                     continue
-                if node_tup.end_col_offset - node.end_col_offset == 0:
+                if node_tup.lineno - node.lineno == 0:
                     for coords in self.parens_coords:
                         if self._node_in_parens(node_tup, coords):
                             exceptions.append(coords)
@@ -115,7 +115,7 @@ def find_parens_coords(token):
     for i in range(len(token)):
         first_in_line = last_line != token[i].start[0]
         last_line = token[i].end[0]
-        if token[i].type == 54:
+        if token[i].type == 53:
             if token[i].string in open_list:
                 if not first_in_line:
                     opening_stack.append([token[i].start, token[i].end[1],

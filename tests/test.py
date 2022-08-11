@@ -49,7 +49,7 @@ def test_tuple_literal_3():
     s = """a = (\\
     "a", "b")
     """
-    assert not _results(s)
+    assert _results(s)
 
 
 def test_tuple_literal_4():
