@@ -41,8 +41,7 @@ class Plugin:
     def _node_in_parens(node, parens_coords):
         open_, _, _, close = parens_coords
         node_start = (node.lineno, node.col_offset)
-        # -1: accounting for width of closing parenthesis
-        return node_start > open_
+        return close > node_start > open_
 
     def check(self) -> None:
         msg = "PAR001: Too many parentheses"
