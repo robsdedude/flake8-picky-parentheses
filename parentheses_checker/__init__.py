@@ -47,6 +47,15 @@ class Plugin:
         node_start = (node.lineno, node.col_offset)
         return close > node_start > open_
 
+    @staticmethod
+    def _check_parens_is_tuple(node, parens_coords):
+        if sys.version_info >= (3, 8):
+            return parens_coords[0] == (node.lineno, node.col_offset)
+        else:
+            # in Python 3.7 the parentheses are not considered part of the
+            # tuple node
+            return Plugin._node_in_parens(node, parens_coords)
+
     def check(self) -> None:
         msg = "PAR001: Too many parentheses"
         # exceptions made for parentheses that are not strictly necessary
@@ -86,15 +95,11 @@ class Plugin:
                             ))
                         break
 
-            for node_tup in ast.iter_child_nodes(node):
-                if not isinstance(node_tup, ast.Tuple):
-                    continue
-                if node_tup.lineno - node.lineno == 0:
-                    for coords in self.parens_coords:
-                        if self._node_in_parens(node_tup, coords):
-                            exceptions.append(coords)
-                            break
-                    break
+            if isinstance(node, ast.Tuple):
+                for coords in self.parens_coords:
+                    if self._check_parens_is_tuple(node, coords):
+                        exceptions.append(coords)
+                        break
 
         for coords in self.parens_coords:
             if coords in exceptions:

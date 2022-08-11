@@ -49,13 +49,15 @@ def test_tuple_literal_3():
     s = """a = (\\
     "a", "b")
     """
-    assert _results(s)
+    assert not _results(s)
 
 
 def test_tuple_literal_4():
     s = """((a,))
     """
-    assert len(_results(s)) == 2
+    res = _results(s)
+    assert len(res) == 1
+    assert next(iter(res)).startswith("1:1 ")
 
 
 def test_mixed_with_tuple_literal_5():
@@ -87,7 +89,9 @@ def test_nested_tuple_literal():
 def test_multi_parens_tuple_literal_1():
     s = """a = (("a", "b"))
     """
-    assert len(_results(s)) == 2
+    res = _results(s)
+    assert len(res) == 1
+    assert next(iter(res)).startswith("1:5 ")
 
 
 # BAD (one pair of parentheses for tuple literal is enough)
@@ -96,7 +100,9 @@ def test_multi_parens_tuple_literal_2():
         "a", "b"
     ))
     """
-    assert len(_results(s)) == 2
+    res = _results(s)
+    assert len(res) == 1
+    assert next(iter(res)).startswith("1:5 ")
 
 
 # GOOD (parentheses for tuple literal are optional)
