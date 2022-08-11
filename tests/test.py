@@ -19,7 +19,7 @@ def _results(s: str) -> Set[str]:
 
 
 def _ws_generator():
-    return "", " ", "\t", "   ", "\t\t", "\t ", " \t"
+    return "", " ", "\t", "   ", "\t\t", "\t "
 
 
 def test_multi_line_condition():
@@ -55,7 +55,9 @@ def test_tuple_literal_3():
 def test_tuple_literal_4():
     s = """((a,))
     """
-    assert len(_results(s)) == 2
+    res = _results(s)
+    assert len(res) == 1
+    assert next(iter(res)).startswith("1:1 ")
 
 
 def test_mixed_with_tuple_literal_5():
@@ -87,7 +89,9 @@ def test_nested_tuple_literal():
 def test_multi_parens_tuple_literal_1():
     s = """a = (("a", "b"))
     """
-    assert len(_results(s)) == 2
+    res = _results(s)
+    assert len(res) == 1
+    assert next(iter(res)).startswith("1:5 ")
 
 
 # BAD (one pair of parentheses for tuple literal is enough)
@@ -96,7 +100,9 @@ def test_multi_parens_tuple_literal_2():
         "a", "b"
     ))
     """
-    assert len(_results(s)) == 2
+    res = _results(s)
+    assert len(res) == 1
+    assert next(iter(res)).startswith("1:5 ")
 
 
 # GOOD (parentheses for tuple literal are optional)
@@ -223,9 +229,8 @@ bar * baz
 @pytest.mark.parametrize("ws2", _ws_generator())
 @pytest.mark.parametrize("ws3", _ws_generator())
 @pytest.mark.parametrize("ws4", _ws_generator())
-@pytest.mark.parametrize("ws5", _ws_generator())
-def test_unpacking(ws1, ws2, ws3, ws4, ws5):
-    s = f"""({ws1}a{ws2},{ws3}){ws4}={ws5}["a"]
+def test_unpacking(ws1, ws2, ws3, ws4):
+    s = f"""({ws1}a{ws2},{ws3}){ws4}= ["a"]
     """
     assert len(_results(s)) == 1
 
