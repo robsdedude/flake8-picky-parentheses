@@ -38,7 +38,7 @@ constructs if parentheses are not needed, but they help, to divide parts
 of algorithm and show sequence of actions.
 
 ```sh
-#ALL GOOD o
+#ALL GOOD
 a = (1 + 2) % 3
 a = 1 and (2 + 3)
 a = (1 / 2) * 3
