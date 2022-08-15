@@ -19,25 +19,28 @@ class Plugin:
     version = metadata.version("flake8_redundant_parentheses")
 
     def __init__(self, tree: ast.AST, read_lines, file_tokens):
+        self.source_code_by_lines = list(read_lines())
         self.source_code = "".join(read_lines())
         self.file_token = list(file_tokens)
         self.tree = tree
         self.dump_tree = ast.dump(tree)
         # all parentheses coordinates
-        self.parens_coords = find_parens_coords(self.file_token)
+        self.all_parens_coords = find_parens_coords(self.file_token)
         # filter to only keep parentheses that are not strictly necessary
         self.parens_coords = [
             coords
-            for coords in self.parens_coords
+            for coords in self.all_parens_coords
             if tree_without_parens_unchanged(self.source_code,
                                              self.dump_tree, coords)
         ]
         self.problems: List[Tuple[int, int, str]] = []
 
     def run(self) -> Generator[Tuple[int, int, str, Type[Any]], None, None]:
-        if not self.parens_coords:
+        self.check_parentheses_in_funcs()
+        if not self.parens_coords and not self.problems:
             return
-        self.check()
+        if self.parens_coords:
+            self.check()
         for line, col, msg in self.problems:
             yield line, col, msg, type(self)
 
@@ -55,6 +58,49 @@ class Plugin:
             # in Python 3.7 the parentheses are not considered part of the
             # tuple node
             return Plugin._node_in_parens(node, parens_coords)
+
+    @staticmethod
+    def _first_in_line(cords, source_code):
+        for symb in source_code[cords[0] - 1]:
+            if symb == " " or symb == "\t":
+                continue
+            elif symb == ")" or symb == "(":
+                return True
+            else:
+                return False
+
+    @staticmethod
+    def _last_in_line(cords, source_code):
+        for symb in reversed(source_code[cords[0] - 1]):
+            if symb == " " or symb == ":" or symb == "\n":
+                continue
+            elif symb == ")" or symb == "(":
+                return True
+            else:
+                return False
+
+    def check_parentheses_in_funcs(self) -> None:
+        for node in ast.walk(self.tree):
+            try:
+                if node.end_lineno - node.lineno != 0:
+                    for cords in self.all_parens_coords:
+                        if cords[0][0] == node.lineno and cords[3][0] == node.end_lineno:
+                            if (self._last_in_line(cords[0], self.source_code_by_lines)
+                                    and not self._first_in_line(cords[3], self.source_code_by_lines)):
+                                self.problems.append((
+                                    cords[0][0], cords[0][1],
+                                    "PAR003: Wrong position of parentheses"
+                                ))
+                                continue
+                            if (not self._last_in_line(cords[0], self.source_code_by_lines)
+                                    and self._first_in_line(cords[3], self.source_code_by_lines)):
+                                self.problems.append((
+                                    cords[0][0], cords[0][1],
+                                    "PAR003: Wrong position of parentheses"
+                                ))
+                                continue
+            except AttributeError:
+                continue
 
     def check(self) -> None:
         msg = "PAR001: Too many parentheses"

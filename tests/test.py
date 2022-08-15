@@ -30,6 +30,31 @@ def test_multi_line_condition():
     assert not _results(s)
 
 
+# GOOD (use parentheses for line continuation)
+def test_parentheses_in_if_on_new_line():
+    s = """if (
+        a == b
+        ): c + d
+    """
+    assert not _results(s)
+
+
+# BAD (use parentheses in both case of line continuation)
+def test_parentheses_in_if_only_with_second_new_line():
+    s = """if (a == b
+        ): c + d
+    """
+    assert _results(s)
+
+
+# BAD (use parentheses in both case of line continuation)
+def test_parentheses_in_if_only_with_first_new_line():
+    s = """if (
+    a == b): c + d
+    """
+    assert _results(s)
+
+
 # GOOD (use parentheses for tuple literal)
 def test_tuple_literal_1():
     s = """a = ("a",)
@@ -218,8 +243,7 @@ def test_multi_line_bin_op_example_unnecessary_parens():
     # OK, please don't judge me for this incredibly ugly code...
     # I need to make a point here.
     s = """a = foo + (\\
-bar * baz
-)
+bar * baz)
     """
     assert not _results(s)
 
@@ -249,7 +273,7 @@ def test_call_chain_escaped_line_break_1():
 foo\\
 ).bar(baz)
     """
-    assert len(_results(s)) == 1
+    assert len(_results(s)) == 2
 
 
 # BAD (don't use parentheses when already using \ for line continuation)
@@ -261,7 +285,7 @@ def test_call_chain_escaped_line_break_2():
     if sys.version_info >= (3, 10):
         assert not _results(s)
     else:
-        assert len(_results(s)) == 1
+        assert len(_results(s)) == 2
 
 
 # BAD (redundant parentheses)
