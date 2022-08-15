@@ -14,7 +14,8 @@ https://github.com/robsdedude/flake8-redundant-parentheses.git
 
 ### Usage
 
-`Rouven help`
+After downloading program from GitHub you can boot it on your code and if 
+you have syntax mistakes in it, you will get  PAR error.
 
 ## Examples
 
@@ -45,3 +46,5 @@ a = (1 / 2) * 3
 a = not (1 + 2)
 a = (not 1) + 2
 ```
+
+<a href="https://github.com/robsdedude/flake8-redundant-parentheses/blob/main/LICENSE"><img alt="License: MIT" src="https://black.readthedocs.io/en/stable/_static/license.svg"></a>
