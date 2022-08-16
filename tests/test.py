@@ -33,25 +33,170 @@ def test_multi_line_condition():
 # GOOD (use parentheses for line continuation)
 def test_parentheses_in_if_on_new_line():
     s = """if (
-        a == b
-        ): c + d
+a == b
+): c + d
     """
     assert not _results(s)
 
 
 # BAD (use parentheses in both case of line continuation)
 def test_parentheses_in_if_only_with_second_new_line():
-    s = """if (a == b
-        ): c + d
+    s = """if ( a == b
+): c + d
     """
-    assert _results(s)
+    assert not _results(s)
 
 
 # BAD (use parentheses in both case of line continuation)
 def test_parentheses_in_if_only_with_first_new_line():
     s = """if (
-    a == b): c + d
+a == b): c + d
     """
+    assert _results(s)
+
+
+# GOOD (have all brackets on the same line)
+def test_list_in_one_line():
+    s = """a = [1, 2, 3]"""
+    assert not _results(s)
+
+
+# GOOD
+# (when the opening bracket is the last thing on a line, the matching closing
+# bracket is the first thing on a new line that matches the indentation of the
+# line with the opening bracket)
+def test_list_with_enters_line():
+    s = """a = [
+1, 2, 3
+]"""
+    assert not _results(s)
+
+
+# BAD (opening bracket is last, but closing is not on new line)
+def test_list_with_only_one_enter_line():
+    s = """a = [
+1, 2, 3]"""
+    assert _results(s)
+
+
+# BAD
+# (opening bracket is last, closing is on new line but indentation mismatch)
+def test_list_mismatch_line():
+    s = """a = [
+1, 2, 3
+    ]"""
+    assert _results(s)
+
+
+# GOOD (opening bracket is not last, so we don't care about the closing one)
+def test_list_open_bracket_not_last():
+    s = """a = [1, 2, 3
+]"""
+    assert not _results(s)
+
+
+# GOOD (opening bracket is not last, so we don't care about the closing one)
+def test_list_open_bracket_not_last_2():
+    s = """a = [1, 2, 3
+]"""
+    assert not _results(s)
+
+
+# (pretty much the same rules apply for multiple brackets)
+
+# GOOD (have all brackets on the same line)
+def test_multilist():
+    s = """a = [[1, 2, 3], [4, 5, 6]]"""
+    assert not _results(s)
+
+
+# GOOD
+def test_multilist_with_enters():
+    s = """a = [
+[1, 2, 3], [4, 5, 6]
+]"""
+    assert not _results(s)
+
+
+# GOOD
+def test_multilist_with_enters_2():
+    s = """a = [
+[1, 2, 3],
+[4, 5, 6]
+]"""
+    assert not _results(s)
+
+
+# GOOD
+def test_multilist_with_enters_3():
+    s = """a = [[
+1, 2, 3
+]]"""
+    assert not _results(s)
+
+
+# GOOD
+def test_multilist_with_enters_3():
+    s = """a = [
+    [
+        1, 2, 3
+    ],
+    [
+        4, 5, 6
+    ]
+]"""
+    assert not _results(s)
+
+
+# BAD
+# (opening bracket is last, closing is on new line but indentation mismatch)
+def test_multilist_mismatch():
+    s = """a = [
+    [
+        1, 2, 3
+    ],
+    [
+        4, 5, 6
+    ]
+  ]"""
+    assert _results(s)
+
+
+# BAD
+# (opening bracket is last, closing is on new line but indentation mismatch)
+def test_multilist_mismatch_2():
+    s = """a = [
+    [
+        1, 2, 3
+      ],
+    [
+        4, 5, 6
+    ]
+]"""
+    assert _results(s)
+
+
+# BAD
+# (opening bracket is last, closing is on new line but indentation mismatch)
+def test_multilist_mismatch_3():
+    s = """a = [
+    [
+        1, 2, 3
+    ],
+    [
+            4, 5, 6
+     ]
+]"""
+    assert _results(s)
+
+
+# BAD (if you have a closing bracket on a new line, don't open a new bracket)
+def test_multilist_mismatch_4():
+    s = """a = [[
+        1, 2, 3
+    ], [
+        4, 5, 6
+    ]]"""
     assert _results(s)
 
 
@@ -273,7 +418,7 @@ def test_call_chain_escaped_line_break_1():
 foo\\
 ).bar(baz)
     """
-    assert len(_results(s)) == 2
+    assert len(_results(s)) == 1
 
 
 # BAD (don't use parentheses when already using \ for line continuation)
@@ -285,7 +430,7 @@ def test_call_chain_escaped_line_break_2():
     if sys.version_info >= (3, 10):
         assert not _results(s)
     else:
-        assert len(_results(s)) == 2
+        assert len(_results(s)) == 1
 
 
 # BAD (redundant parentheses)
@@ -353,51 +498,51 @@ def test_function_call_redundant_parens_for_readability():
 
 
 # GOOD
-def test_multi_line_list():
-    s = """[
-        1
-        + 2,
-        3
-    ]
-    """
-    assert not _results(s)
+# def test_multi_line_list():  (we can't have just list in program without another functions)
+#     s = """[
+#         1
+#         + 2,
+#         3
+#     ]
+#     """
+#     assert not _results(s)
 
 
 # BAD
-def test_multi_line_list_unnecessary_parens_1():
-    s = """[
-        (1
-         + 2),
-        3
-    ]
-    """
-    assert len(_results(s)) == 1
+# def test_multi_line_list_unnecessary_parens_1():  (we can't have just list in program without another functions)
+#     s = """[
+#         (1
+#          + 2),
+#         3
+#     ]
+#     """
+#     assert len(_results(s)) == 1
 
 
 # BAD
-def test_multi_line_list_unnecessary_parens_2():
-    s = """[
-        (
-            1
-            + 2
-        ),
-        3
-    ]
-    """
-    assert len(_results(s)) == 1
+# def test_multi_line_list_unnecessary_parens_2(): (we can't have just list in program without another functions)
+#     s = """[
+#         (
+#             1
+#             + 2
+#         ),
+#         3
+#     ]
+#     """
+#     assert len(_results(s)) == 1
 
 
 # BAD
 def test_function_call_unnecessary_multi_line_parens():
     s = """foo(
-        (1 + 2) + 3,
-        (4
-         + 5)
-    )
-    """
+    (1 + 2) + 3,
+    (4
+       + 5)
+)
+"""
     res = _results(s)
     assert len(res) == 1
-    assert next(iter(res)).startswith("3:9 ")
+    assert next(iter(res)).startswith("3:5 ")
 
 
 # GOOD (function call with tuple literal)
@@ -427,8 +572,8 @@ def test_multi_line_parens_2():
     s = """a = (
         "abc"
         "def"
-    )
-    """
+)
+"""
     assert not _results(s)
 
 

@@ -33,6 +33,10 @@ class Plugin:
             if tree_without_parens_unchanged(self.source_code,
                                              self.dump_tree, coords)
         ]
+        self.recheck_list = []
+        for cords in self.all_parens_coords:
+            if cords not in self.parens_coords:
+                self.recheck_list.append(cords)
         self.problems: List[Tuple[int, int, str]] = []
 
     def run(self) -> Generator[Tuple[int, int, str, Type[Any]], None, None]:
@@ -64,7 +68,7 @@ class Plugin:
         for symb in source_code[cords[0] - 1]:
             if symb == " " or symb == "\t":
                 continue
-            elif symb == ")" or symb == "(":
+            elif symb == ")" or symb == "(" or symb == "]" or symb == "[" or symb == "}" or symb == "{":
                 return True
             else:
                 return False
@@ -74,33 +78,53 @@ class Plugin:
         for symb in reversed(source_code[cords[0] - 1]):
             if symb == " " or symb == ":" or symb == "\n":
                 continue
-            elif symb == ")" or symb == "(":
+            elif symb == ")" or symb == "(" or symb == "]" or symb == "[" or symb == "}" or symb == "{":
                 return True
             else:
                 return False
 
-    def check_parentheses_in_funcs(self) -> None:
-        for node in ast.walk(self.tree):
+    def _adges_of_node(self, node):
+        end_lineno = 0
+        end_col_offset = 0
+        for child in ast.iter_child_nodes(node):
+            end_lineno_, end_col_offset_ = self._adges_of_node(child)
+            if end_lineno_ > end_lineno:
+                end_lineno, end_col_offset = end_lineno_, end_col_offset_
             try:
-                if node.end_lineno - node.lineno != 0:
-                    for cords in self.all_parens_coords:
-                        if cords[0][0] == node.lineno and cords[3][0] == node.end_lineno:
+                if child.lineno > end_lineno:
+                    end_lineno = child.lineno
+                    end_col_offset = child.col_offset
+            except AttributeError:
+                continue
+        return end_lineno, end_col_offset
+
+    def check_parentheses_in_funcs(self) -> None:
+        exeption = []
+        for node in ast.walk(self.tree):
+            for cords in self.recheck_list:
+                try:
+                    if cords[0][0] == node.lineno and cords not in exeption:
+                        end_lineno, end_col_offset = self._adges_of_node(node)
+                        if end_lineno - node.lineno > 0 and not (node.lineno, node.col_offset) > cords[0]:
                             if (self._last_in_line(cords[0], self.source_code_by_lines)
                                     and not self._first_in_line(cords[3], self.source_code_by_lines)):
                                 self.problems.append((
                                     cords[0][0], cords[0][1],
-                                    "PAR003: Wrong position of parentheses"
+                                    "PAR003: Opening bracket is last, but closing is not on new line"
                                 ))
                                 continue
-                            if (not self._last_in_line(cords[0], self.source_code_by_lines)
-                                    and self._first_in_line(cords[3], self.source_code_by_lines)):
+                            if (self._last_in_line(cords[0], self.source_code_by_lines)
+                                    and self._first_in_line(cords[3], self.source_code_by_lines)
+                                    and node.col_offset != cords[3][1]):
                                 self.problems.append((
                                     cords[0][0], cords[0][1],
-                                    "PAR003: Wrong position of parentheses"
+                                    "PAR003: Closing is on new line but indentation mismatch"
                                 ))
                                 continue
-            except AttributeError:
-                continue
+                            exeption.append(cords)
+
+                except AttributeError:
+                    continue
 
     def check(self) -> None:
         msg = "PAR001: Too many parentheses"
