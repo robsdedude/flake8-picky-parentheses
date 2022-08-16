@@ -21,10 +21,11 @@ setup(
     long_description_content_type="text/markdown",
     author="Ivan Prychantovskyi, Rouven Bauer",
     url="https://github.com/robsdedude/flake8-redundant-parentheses",
-    packages=["flake8_redundant_parentheses"],
+    packages=["flake8_redundant_parentheses", "flake8_brackets_position"],
     entry_points={
         "flake8.extension": [
             'PAR0 = flake8_redundant_parentheses:Plugin',
+            'BRA0 = flake8_brackets_position:Plugin_2'
         ],
     },
     classifiers=[

@@ -5,6 +5,8 @@ import tokenize
 from typing import Set
 
 from flake8_redundant_parentheses import Plugin
+from flake8_brackets_position import Plugin_2
+
 import pytest
 
 
@@ -15,7 +17,19 @@ def _results(s: str) -> Set[str]:
     tree = ast.parse(s)
     file_tokens = tokenize.tokenize(io.BytesIO(s.encode("utf-8")).readline)
     plugin = Plugin(tree, read_lines, file_tokens)
-    return {f"{line}:{col + 1} {msg}" for line, col, msg, _ in plugin.run()}
+    file_tokens = tokenize.tokenize(io.BytesIO(s.encode("utf-8")).readline)
+    plugin2 = Plugin_2(tree, read_lines, file_tokens)
+    message1 = {f"{line}:{col + 1} {msg}" for line, col, msg, _ in plugin.run()}
+    message2 = {f"{line}:{col + 1} {msg}" for line, col, msg, _ in plugin2.run()}
+    res = []
+    if message1:
+        res.append(message1)
+    if message2:
+        res.append(message2)
+    try:
+        return res[0]
+    except IndexError:
+        return res
 
 
 def _ws_generator():
