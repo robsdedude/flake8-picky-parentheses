@@ -1,4 +1,5 @@
 import ast
+import tokenize
 try:
     # Python 3.8+
     from importlib import metadata
@@ -13,104 +14,90 @@ from typing import (
     Type,
 )
 
+BRACKETS_LIST = ["{", "[", "(", "}", "]", ")"]
 
-class Plugin_2:
+
+class Plugin_for_brackets_position:
     name = __name__
     version = metadata.version("flake8_redundant_parentheses")
 
     def __init__(self,  tree: ast.AST, read_lines, file_tokens):
         self.source_code_by_lines = list(read_lines())
-        self.source_code = "".join(read_lines())
         self.file_token = list(file_tokens)
-        self.tree = tree
-        self.dump_tree = ast.dump(tree)
         # all parentheses coordinates
         self.all_parens_coords = find_parens_coords(self.file_token)
-        # filter to only keep parentheses that are not strictly necessary
-        self.parens_coords = [
-            coords
-            for coords in self.all_parens_coords
-            if tree_without_parens_unchanged(self.source_code,
-                                             self.dump_tree, coords)
-        ]
-        self.recheck_list = []
-        for cords in self.all_parens_coords:
-            if cords not in self.parens_coords:
-                self.recheck_list.append(cords)
         self.problems: List[Tuple[int, int, str]] = []
 
     def run(self) -> Generator[Tuple[int, int, str, Type[Any]], None, None]:
         if not self.all_parens_coords:
             return
-        self.check_parentheses_in_funcs()
+        self.check_brackets_in_func()
         for line, col, msg in self.problems:
             yield line, col, msg, type(self)
 
     @staticmethod
     def _first_in_line(cords, source_code):
-        for symb in source_code[cords[0] - 1]:
-            if symb == " " or symb == "\t":
+        for num in range(len(source_code[cords[0] - 1])):
+            if source_code[cords[0] - 1][num] == " " or source_code[cords[0] - 1][num] == "\t":
                 continue
-            elif symb == ")" or symb == "(" or symb == "]" or symb == "[" or symb == "}" or symb == "{":
+            elif source_code[cords[0] - 1][num] in BRACKETS_LIST and cords[1] == num:
                 return True
             else:
                 return False
 
     @staticmethod
     def _last_in_line(cords, source_code):
-        for symb in reversed(source_code[cords[0] - 1]):
-            if symb == " " or symb == ":" or symb == "\n":
+        revers_code = list(reversed(source_code[cords[0] - 1]))
+        for num in range(len(source_code[cords[0] - 1])):
+            if revers_code[num] == " " or revers_code[num] == ":" or revers_code[num] == "\n":
                 continue
-            elif symb == ")" or symb == "(" or symb == "]" or symb == "[" or symb == "}" or symb == "{":
+            elif revers_code[num] in BRACKETS_LIST and len(revers_code) - cords[1] - 1 == num:
                 return True
             else:
                 return False
 
-    def _adges_of_node(self, node):
-        end_lineno = 0
-        end_col_offset = 0
-        for child in ast.iter_child_nodes(node):
-            end_lineno_, end_col_offset_ = self._adges_of_node(child)
-            if end_lineno_ > end_lineno:
-                end_lineno, end_col_offset = end_lineno_, end_col_offset_
-            try:
-                if child.lineno > end_lineno:
-                    end_lineno = child.lineno
-                    end_col_offset = child.col_offset
-            except AttributeError:
-                continue
-        return end_lineno, end_col_offset
-
-    def check_parentheses_in_funcs(self) -> None:
-        exeption = []
-        for node in ast.walk(self.tree):
-            for cords in self.recheck_list:
-                try:
-                    if cords[0][0] == node.lineno and cords not in exeption:
-                        end_lineno, end_col_offset = self._adges_of_node(node)
-                        if end_lineno - node.lineno > 0 and not (node.lineno, node.col_offset) > cords[0]:
-                            if (self._last_in_line(cords[0], self.source_code_by_lines)
-                                    and not self._first_in_line(cords[3], self.source_code_by_lines)):
-                                self.problems.append((
-                                    cords[0][0], cords[0][1],
-                                    "BRA001: Opening bracket is last, but closing is not on new line"
-                                ))
-                                continue
-                            if (self._last_in_line(cords[0], self.source_code_by_lines)
-                                    and self._first_in_line(cords[3], self.source_code_by_lines)
-                                    and node.col_offset != cords[3][1]):
+    def check_brackets_in_func(self):
+        for cords in self.all_parens_coords:
+            if cords[0][0] != cords[3][0]:
+                if (self._last_in_line(cords[0], self.source_code_by_lines)
+                   and not self._first_in_line(cords[3], self.source_code_by_lines)):
+                    self.problems.append((
+                        cords[0][0], cords[0][1],
+                        "BRA001: Opening bracket is last, but closing is not on new line"
+                    ))
+                    continue
+                if not (self._last_in_line(cords[0], self.source_code_by_lines)
+                   and self._first_in_line(cords[3], self.source_code_by_lines)):
+                    continue
+                for num in range(len(self.file_token)):
+                    if self.file_token[num].start != cords[0]:
+                        continue
+                    i = 1
+                    a = 1
+                    while self.file_token[num - i + 1].type == tokenize.OP:
+                        if self.file_token[num - i].type == 1:
+                            if (self.file_token[num - 1].string in BRACKETS_LIST
+                               and cords[0][1] != cords[3][1]
+                               and self.source_code_by_lines[cords[3][0] - 1][cords[3][1] + 1] not in BRACKETS_LIST):
                                 self.problems.append((
                                     cords[0][0], cords[0][1],
                                     "BRA002: Closing is on new line but indentation mismatch"
                                 ))
-                                continue
-                            exeption.append(cords)
-
-                except AttributeError:
-                    continue
-
-
-OP_TOKEN_CODE = 54 if sys.version_info >= (3, 8) else 53
+                                break
+                            elif self.file_token[num - i].start[1] != cords[3][1]:
+                                self.problems.append((
+                                    cords[0][0], cords[0][1],
+                                    "BRA002: Closing is on new line but indentation mismatch"
+                                ))
+                                break
+                            a += 1
+                        i += 1
+                    if cords[0][1] != cords[3][1] and a == 1:
+                        self.problems.append((
+                            cords[0][0], cords[0][1],
+                            "BRA002: Closing is on new line but indentation mismatch"
+                        ))
+                        break
 
 
 def find_parens_coords(token):
@@ -129,7 +116,7 @@ def find_parens_coords(token):
     for i in range(len(token)):
         first_in_line = last_line != token[i].start[0]
         last_line = token[i].end[0]
-        if token[i].type == OP_TOKEN_CODE:
+        if token[i].type == tokenize.OP:
             if token[i].string in open_list:
                 if not first_in_line:
                     opening_stack.append([token[i].start, token[i].end[1],
@@ -153,27 +140,3 @@ def find_parens_coords(token):
                 )
 
     return parentheses_pairs
-
-
-def tree_without_parens_unchanged(source_code, start_tree, parens_coords):
-    """Check if parentheses are redundant.
-
-    Replace a pair of parentheses with a blank string and check if the
-    resulting AST is still the same.
-    """
-    open_, space, replacement, close = parens_coords
-    lines = source_code.split("\n")
-    lines[open_[0] - 1] = (lines[open_[0] - 1][:open_[1]]
-                           + replacement
-                           + lines[open_[0] - 1][space:])
-    shift = 0
-    if open_[0] == close[0]:
-        shift -= (space - open_[1]) - len(replacement)
-    lines[close[0] - 1] = (lines[close[0] - 1][:close[1] + shift]
-                           + " " + lines[close[0] - 1][close[1] + 1 + shift:])
-    code_without_parens = "\n".join(lines)
-    try:
-        tree = ast.parse(code_without_parens)
-    except (ValueError, SyntaxError):
-        return False
-    return ast.dump(tree) == start_tree

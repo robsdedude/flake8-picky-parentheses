@@ -1,4 +1,5 @@
 import ast
+import tokenize
 try:
     # Python 3.8+
     from importlib import metadata
@@ -14,7 +15,7 @@ from typing import (
 )
 
 
-class Plugin:
+class Plugin_for_redundant_parentheses:
     name = __name__
     version = metadata.version("flake8_redundant_parentheses")
 
@@ -55,7 +56,7 @@ class Plugin:
         else:
             # in Python 3.7 the parentheses are not considered part of the
             # tuple node
-            return Plugin._node_in_parens(node, parens_coords)
+            return Plugin_for_redundant_parentheses._node_in_parens(node, parens_coords)
 
     def check(self) -> None:
         msg = "PAR001: Too many parentheses"
@@ -108,9 +109,6 @@ class Plugin:
             self.problems.append((*coords[0], msg))
 
 
-OP_TOKEN_CODE = 54 if sys.version_info >= (3, 8) else 53
-
-
 def find_parens_coords(token):
     # return parentheses paris in the form
     # (
@@ -127,7 +125,7 @@ def find_parens_coords(token):
     for i in range(len(token)):
         first_in_line = last_line != token[i].start[0]
         last_line = token[i].end[0]
-        if token[i].type == OP_TOKEN_CODE:
+        if token[i].type == tokenize.OP:
             if token[i].string in open_list:
                 if not first_in_line:
                     opening_stack.append([token[i].start, token[i].end[1],
