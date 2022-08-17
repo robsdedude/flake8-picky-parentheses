@@ -330,7 +330,8 @@ def test_function_call_redundant_parens_for_readability():
 
 
 # GOOD
-# def test_multi_line_list():  (we can't have just list in program without another functions)
+# def test_multi_line_list():
+# (we can't have just list in program without another functions)
 #     s = """[
 #         1
 #         + 2,
@@ -341,7 +342,8 @@ def test_function_call_redundant_parens_for_readability():
 
 
 # BAD
-# def test_multi_line_list_unnecessary_parens_1():  (we can't have just list in program without another functions)
+# def test_multi_line_list_unnecessary_parens_1():
+# (we can't have just list in program without another functions)
 #     s = """[
 #         (1
 #          + 2),
@@ -352,7 +354,8 @@ def test_function_call_redundant_parens_for_readability():
 
 
 # BAD
-# def test_multi_line_list_unnecessary_parens_2(): (we can't have just list in program without another functions)
+# def test_multi_line_list_unnecessary_parens_2():
+# (we can't have just list in program without another functions)
 #     s = """[
 #         (
 #             1

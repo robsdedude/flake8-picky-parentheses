@@ -56,7 +56,9 @@ class Plugin_for_redundant_parentheses:
         else:
             # in Python 3.7 the parentheses are not considered part of the
             # tuple node
-            return Plugin_for_redundant_parentheses._node_in_parens(node, parens_coords)
+            return Plugin_for_redundant_parentheses._node_in_parens(
+                node, parens_coords
+            )
 
     def check(self) -> None:
         msg = "PAR001: Too many parentheses"

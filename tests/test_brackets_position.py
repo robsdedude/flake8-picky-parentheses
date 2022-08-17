@@ -1,6 +1,4 @@
-import ast
 import io
-import sys
 import tokenize
 from typing import Set
 
@@ -13,9 +11,8 @@ def _results(s: str) -> Set[str]:
     def read_lines():
         return s.splitlines(keepends=True)
 
-    tree = ast.parse(s)
     file_tokens = tokenize.tokenize(io.BytesIO(s.encode("utf-8")).readline)
-    plugin = Plugin_for_brackets_position(tree, read_lines, file_tokens)
+    plugin = Plugin_for_brackets_position(read_lines, file_tokens)
     return {f"{line}:{col + 1} {msg}" for line, col, msg, _ in plugin.run()}
 
 
@@ -400,3 +397,37 @@ def test_parentheses_in_while_only_with_first_new_line():
 a == b): c + d
     """
     assert _results(s)
+
+
+def test_import():
+    s = """from c import (a, b)"""
+    assert not _results(s)
+
+
+def test_import_in_three_lines():
+    s = """from c import (
+    a, b
+)"""
+    assert not _results(s)
+
+
+def test_ok_import_in_two_lines():
+    s = """from c import (a, b
+)"""
+    assert not _results(s)
+
+
+def test_bad_import_in_two_lines():
+    s = """from c import (
+    a, b)"""
+    assert _results(s)
+
+
+def test_simple_with():
+    s = """with foo as bar:"""
+    assert not _results(s)
+
+
+def test_with_two_args():
+    s = """with (foo as bar, baz as foobar):"""
+    assert not _results(s)

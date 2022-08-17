@@ -1,11 +1,9 @@
-import ast
 import tokenize
 try:
     # Python 3.8+
     from importlib import metadata
 except ImportError:
     import importlib_metadata as metadata
-import sys
 from typing import (
     Any,
     Generator,
@@ -21,7 +19,7 @@ class Plugin_for_brackets_position:
     name = __name__
     version = metadata.version("flake8_redundant_parentheses")
 
-    def __init__(self,  tree: ast.AST, read_lines, file_tokens):
+    def __init__(self, read_lines, file_tokens):
         self.source_code_by_lines = list(read_lines())
         self.file_token = list(file_tokens)
         # all parentheses coordinates
@@ -36,22 +34,27 @@ class Plugin_for_brackets_position:
             yield line, col, msg, type(self)
 
     @staticmethod
-    def _first_in_line(cords, source_code):
+    def first_in_line(cords, source_code):
         for num in range(len(source_code[cords[0] - 1])):
-            if source_code[cords[0] - 1][num] == " " or source_code[cords[0] - 1][num] == "\t":
+            if (source_code[cords[0] - 1][num] == " "
+                    or source_code[cords[0] - 1][num] == "\t"):
                 continue
-            elif source_code[cords[0] - 1][num] in BRACKETS_LIST and cords[1] == num:
+            elif (source_code[cords[0] - 1][num] in BRACKETS_LIST
+                    and cords[1] == num):
                 return True
             else:
                 return False
 
     @staticmethod
-    def _last_in_line(cords, source_code):
+    def last_in_line(cords, source_code):
         revers_code = list(reversed(source_code[cords[0] - 1]))
         for num in range(len(source_code[cords[0] - 1])):
-            if revers_code[num] == " " or revers_code[num] == ":" or revers_code[num] == "\n":
+            if (revers_code[num] == " "
+                    or revers_code[num] == ":"
+                    or revers_code[num] == "\n"):
                 continue
-            elif revers_code[num] in BRACKETS_LIST and len(revers_code) - cords[1] - 1 == num:
+            elif (revers_code[num] in BRACKETS_LIST
+                    and len(revers_code) - cords[1] - 1 == num):
                 return True
             else:
                 return False
@@ -59,12 +62,13 @@ class Plugin_for_brackets_position:
     def check_brackets_in_func(self):
         for cords in self.all_parens_coords:
             if cords[0][0] != cords[3][0]:
-                if not self._last_in_line(cords[0], self.source_code_by_lines):
+                if not self.last_in_line(cords[0], self.source_code_by_lines):
                     continue
-                if not self._first_in_line(cords[3], self.source_code_by_lines):
+                if not self.first_in_line(cords[3], self.source_code_by_lines):
                     self.problems.append((
                         cords[0][0], cords[0][1],
-                        "BRA001: Opening bracket is last, but closing is not on new line"
+                        "BRA001: Opening bracket is last, but closing is not "
+                        "on new line"
                     ))
                     continue
                 for num in range(len(self.file_token)):
@@ -74,17 +78,22 @@ class Plugin_for_brackets_position:
                     a = 1
                     while self.file_token[num - i + 1].type == tokenize.OP:
                         if self.file_token[num - i].type == 1:
-                            if (self.file_token[num - 1].string in BRACKETS_LIST
-                               and self.source_code_by_lines[cords[3][0] - 1][cords[3][1] + 1] not in BRACKETS_LIST):
+                            if (self.file_token[num - 1].string
+                                    in BRACKETS_LIST
+                               and self.source_code_by_lines
+                                    [cords[3][0] - 1][cords[3][1] + 1]
+                                    not in BRACKETS_LIST):
                                 self.problems.append((
                                     cords[0][0], cords[0][1],
-                                    "BRA002: Closing is on new line but indentation mismatch"
+                                    "BRA002: Closing is on new line but "
+                                    "indentation mismatch"
                                 ))
                                 break
-                            elif self.file_token[num - i].start[1] != cords[3][1]:
+                            elif 0 != cords[3][1]:
                                 self.problems.append((
                                     cords[0][0], cords[0][1],
-                                    "BRA002: Closing is on new line but indentation mismatch"
+                                    "BRA002: Closing is on new line but "
+                                    "indentation mismatch"
                                 ))
                                 break
                             a += 1
@@ -92,7 +101,8 @@ class Plugin_for_brackets_position:
                     if cords[0][1] != cords[3][1] and a == 1:
                         self.problems.append((
                             cords[0][0], cords[0][1],
-                            "BRA002: Closing is on new line but indentation mismatch"
+                            "BRA002: Closing is on new line but indentation "
+                            "mismatch"
                         ))
                         break
 
