@@ -59,15 +59,13 @@ class Plugin_for_brackets_position:
     def check_brackets_in_func(self):
         for cords in self.all_parens_coords:
             if cords[0][0] != cords[3][0]:
-                if (self._last_in_line(cords[0], self.source_code_by_lines)
-                   and not self._first_in_line(cords[3], self.source_code_by_lines)):
+                if not self._last_in_line(cords[0], self.source_code_by_lines):
+                    continue
+                if not self._first_in_line(cords[3], self.source_code_by_lines):
                     self.problems.append((
                         cords[0][0], cords[0][1],
                         "BRA001: Opening bracket is last, but closing is not on new line"
                     ))
-                    continue
-                if not (self._last_in_line(cords[0], self.source_code_by_lines)
-                   and self._first_in_line(cords[3], self.source_code_by_lines)):
                     continue
                 for num in range(len(self.file_token)):
                     if self.file_token[num].start != cords[0]:
@@ -77,7 +75,6 @@ class Plugin_for_brackets_position:
                     while self.file_token[num - i + 1].type == tokenize.OP:
                         if self.file_token[num - i].type == 1:
                             if (self.file_token[num - 1].string in BRACKETS_LIST
-                               and cords[0][1] != cords[3][1]
                                and self.source_code_by_lines[cords[3][0] - 1][cords[3][1] + 1] not in BRACKETS_LIST):
                                 self.problems.append((
                                     cords[0][0], cords[0][1],
