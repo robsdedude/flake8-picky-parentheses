@@ -124,8 +124,10 @@ def test_tuple_literal_optional_2():
 # GOOD (parentheses for tuple literal are optional)
 def test_tuple_literal_unpacking():
     s = """a, b = "a", "b"
+c = ((d + e))
     """
-    assert not _results(s)
+    res = _results(s)
+    assert len(res) == 2
 
 
 # BAD (redundant parentheses for unpacking)

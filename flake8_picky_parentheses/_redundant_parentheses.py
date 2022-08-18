@@ -24,7 +24,11 @@ class PluginRedundantParentheses:
     def __init__(self, tree: ast.AST, read_lines, file_tokens):
         self.source_code_by_lines = list(read_lines())
         self.source_code = "".join(read_lines())
+        self.file_tokens_nn = []
         self.file_tokens = list(file_tokens)
+        for token in self.file_tokens:
+            if token.type != tokenize.NL:
+                self.file_tokens_nn.append(token)
         self.tree = tree
         self.dump_tree = ast.dump(tree)
         # all parentheses coordinates
@@ -89,16 +93,27 @@ class PluginRedundantParentheses:
                     for elts in target.elts:
                         tuple_coords = (target.lineno, target.col_offset)
                         elts_coords = (elts.lineno, elts.col_offset)
-                        if tuple_coords < elts_coords:
-                            for coords in self.parens_coords:
-                                if coords[0] <= tuple_coords:
-                                    exceptions.append(coords)
-                                    break
-                            self.problems.append((
-                                node.lineno, node.col_offset,
-                                "PAR002: Dont use parentheses for "
-                                "unpacking"
-                            ))
+                        if tuple_coords > elts_coords:
+                            continue
+                        breaker = None
+                        for coords in self.parens_coords:
+                            if coords[0] <= tuple_coords:
+                                exceptions.append(coords)
+                                break
+                        for token in range(len(self.file_tokens_nn)):
+                            if (self.file_tokens_nn[token].start
+                                    == tuple_coords
+                                    and self.file_tokens_nn[token - 1].string
+                                    == "("):
+                                breaker = 1
+                                break
+                        if breaker != 1:
+                            break
+                        self.problems.append((
+                            node.lineno, node.col_offset,
+                            "PAR002: Dont use parentheses for "
+                            "unpacking"
+                        ))
                         break
 
             if isinstance(node, ast.Tuple):
@@ -106,6 +121,16 @@ class PluginRedundantParentheses:
                     if self._check_parens_is_tuple(node, coords):
                         exceptions.append(coords)
                         break
+
+            # if isinstance(node, ast.Name):
+            #     for coords in self.parens_coords:
+            #         if self._check_parens_is_tuple(node, coords):
+            #             self.problems.append((
+            #                 node.lineno, node.col_offset,
+            #                 "PAR002: Dont use parentheses for "
+            #                 "unpacking"
+            #             ))
+            #             break
 
         for coords in self.parens_coords:
             if coords in exceptions:
