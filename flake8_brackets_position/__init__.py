@@ -12,7 +12,8 @@ from typing import (
     Type,
 )
 
-BRACKETS_LIST = ["{", "[", "(", "}", "]", ")"]
+OPEN_LIST = ["[", "{", "("]
+CLOSE_LIST = ["]", "}", ")"]
 
 
 class Plugin_for_brackets_position:
@@ -39,9 +40,9 @@ class Plugin_for_brackets_position:
             if (source_code[cords[0] - 1][num] == " "
                     or source_code[cords[0] - 1][num] == "\t"):
                 continue
-            elif (source_code[cords[0] - 1][num] in BRACKETS_LIST
-                    and cords[1] == num):
-                return True
+            elif cords[1] == num:
+                if source_code[cords[0] - 1][num] in OPEN_LIST or CLOSE_LIST:
+                    return True
             else:
                 return False
 
@@ -53,9 +54,9 @@ class Plugin_for_brackets_position:
                     or revers_code[num] == ":"
                     or revers_code[num] == "\n"):
                 continue
-            elif (revers_code[num] in BRACKETS_LIST
-                    and len(revers_code) - cords[1] - 1 == num):
-                return True
+            elif len(revers_code) - cords[1] - 1 == num:
+                if revers_code[num] in OPEN_LIST or CLOSE_LIST:
+                    return True
             else:
                 return False
 
@@ -79,10 +80,10 @@ class Plugin_for_brackets_position:
                     while self.file_token[num - i + 1].type == tokenize.OP:
                         if self.file_token[num - i].type == 1:
                             if (self.file_token[num - 1].string
-                                    in BRACKETS_LIST
+                                    in OPEN_LIST
                                and self.source_code_by_lines
                                     [cords[3][0] - 1][cords[3][1] + 1]
-                                    not in BRACKETS_LIST):
+                                    not in CLOSE_LIST):
                                 self.problems.append((
                                     cords[0][0], cords[0][1],
                                     "BRA002: Closing is on new line but "
@@ -115,8 +116,6 @@ def find_parens_coords(token):
     #   replacement,
     #   (close_line, close_col)
     # )
-    open_list = ["[", "{", "("]
-    close_list = ["]", "}", ")"]
     opening_stack = []
     parentheses_pairs = []
     last_line = -1
@@ -124,7 +123,7 @@ def find_parens_coords(token):
         first_in_line = last_line != token[i].start[0]
         last_line = token[i].end[0]
         if token[i].type == tokenize.OP:
-            if token[i].string in open_list:
+            if token[i].string in OPEN_LIST:
                 if not first_in_line:
                     opening_stack.append([token[i].start, token[i].end[1],
                                           " ", token[i].string])
@@ -138,10 +137,10 @@ def find_parens_coords(token):
                 opening_stack.append([token[i].start, len(token[i].line) - 2,
                                       "", token[i].string])
 
-            if token[i].string in close_list:
+            if token[i].string in CLOSE_LIST:
                 opening = opening_stack.pop()
-                assert (open_list.index(opening[3])
-                        == close_list.index(token[i].string))
+                assert (OPEN_LIST.index(opening[3])
+                        == CLOSE_LIST.index(token[i].string))
                 parentheses_pairs.append(
                     [*opening[0:3], token[i].start]
                 )
