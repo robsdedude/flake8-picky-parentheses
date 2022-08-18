@@ -93,7 +93,10 @@ class PluginRedundantParentheses:
                             for coords in self.parens_coords:
                                 if coords[0] <= tuple_coords:
                                     exceptions.append(coords)
+                                    breaker = True
                                     break
+                            if breaker:
+                                break
                             self.problems.append((
                                 node.lineno, node.col_offset,
                                 "PAR002: Dont use parentheses for "
