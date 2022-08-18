@@ -18,9 +18,9 @@ CLOSE_LIST = ["]", "}", ")"]
 
 class Plugin_for_brackets_position:
     name = __name__
-    version = metadata.version("flake8_redundant_parentheses")
+    version = metadata.version("flake8_picky_parentheses")
 
-    def __init__(self, read_lines, file_tokens):
+    def __init__(self, tree, read_lines, file_tokens):
         self.source_code_by_lines = list(read_lines())
         self.file_token = list(file_tokens)
         # all parentheses coordinates

@@ -4,7 +4,7 @@ import sys
 import tokenize
 from typing import Set
 
-from flake8_redundant_parentheses import Plugin_for_redundant_parentheses
+from flake8_picky_parentheses import Plugin_for_redundant_parentheses
 
 
 import pytest

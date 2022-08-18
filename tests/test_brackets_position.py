@@ -2,7 +2,7 @@ import io
 import tokenize
 from typing import Set
 
-from flake8_brackets_position import Plugin_for_brackets_position
+from flake8_picky_parentheses import Plugin_for_brackets_position
 
 import pytest
 

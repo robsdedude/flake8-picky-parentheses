@@ -17,7 +17,7 @@ from typing import (
 
 class Plugin_for_redundant_parentheses:
     name = __name__
-    version = metadata.version("flake8_redundant_parentheses")
+    version = metadata.version("flake8_picky_parentheses")
 
     def __init__(self, tree: ast.AST, read_lines, file_tokens):
         self.source_code_by_lines = list(read_lines())
