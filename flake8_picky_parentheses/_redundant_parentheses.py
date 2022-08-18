@@ -102,7 +102,7 @@ class PluginRedundantParentheses:
                                 break
                         for token in range(len(self.file_tokens_nn)):
                             if (self.file_tokens_nn[token].start
-                                    == tuple_coords
+                                    == elts_coords
                                     and self.file_tokens_nn[token - 1].string
                                     == "("):
                                 breaker = 1
