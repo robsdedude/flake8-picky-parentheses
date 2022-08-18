@@ -1,4 +1,5 @@
 import ast
+import tokenize
 try:
     # Python 3.8+
     from importlib import metadata
@@ -13,22 +14,25 @@ from typing import (
     Type,
 )
 
+from ._util import find_parens_coords
 
-class Plugin:
+
+class PluginRedundantParentheses:
     name = __name__
-    version = metadata.version("flake8_redundant_parentheses")
+    version = metadata.version("flake8_picky_parentheses")
 
     def __init__(self, tree: ast.AST, read_lines, file_tokens):
+        self.source_code_by_lines = list(read_lines())
         self.source_code = "".join(read_lines())
-        self.file_token = list(file_tokens)
+        self.file_tokens = list(file_tokens)
         self.tree = tree
         self.dump_tree = ast.dump(tree)
         # all parentheses coordinates
-        self.parens_coords = find_parens_coords(self.file_token)
+        self.all_parens_coords = find_parens_coords(self.file_tokens)
         # filter to only keep parentheses that are not strictly necessary
         self.parens_coords = [
             coords
-            for coords in self.parens_coords
+            for coords in self.all_parens_coords
             if tree_without_parens_unchanged(self.source_code,
                                              self.dump_tree, coords)
         ]
@@ -54,7 +58,9 @@ class Plugin:
         else:
             # in Python 3.7 the parentheses are not considered part of the
             # tuple node
-            return Plugin._node_in_parens(node, parens_coords)
+            return PluginRedundantParentheses._node_in_parens(
+                node, parens_coords
+            )
 
     def check(self) -> None:
         msg = "PAR001: Too many parentheses"
@@ -105,51 +111,6 @@ class Plugin:
             if coords in exceptions:
                 continue
             self.problems.append((*coords[0], msg))
-
-
-OP_TOKEN_CODE = 54 if sys.version_info >= (3, 8) else 53
-
-
-def find_parens_coords(token):
-    # return parentheses paris in the form
-    # (
-    #   (open_line, open_col),
-    #   open_end_col,
-    #   replacement,
-    #   (close_line, close_col)
-    # )
-    open_list = ["[", "{", "("]
-    close_list = ["]", "}", ")"]
-    opening_stack = []
-    parentheses_pairs = []
-    last_line = -1
-    for i in range(len(token)):
-        first_in_line = last_line != token[i].start[0]
-        last_line = token[i].end[0]
-        if token[i].type == OP_TOKEN_CODE:
-            if token[i].string in open_list:
-                if not first_in_line:
-                    opening_stack.append([token[i].start, token[i].end[1],
-                                          " ", token[i].string])
-                    continue
-                if token[i + 1].start[0] == token[i].end[0]:
-                    opening_stack.append([token[i].start,
-                                          token[i + 1].start[1], "",
-                                          token[i].string])
-                    continue
-                # there is only this opening parenthesis on this line
-                opening_stack.append([token[i].start, len(token[i].line) - 2,
-                                      "", token[i].string])
-
-            if token[i].string in close_list:
-                opening = opening_stack.pop()
-                assert (open_list.index(opening[3])
-                        == close_list.index(token[i].string))
-                parentheses_pairs.append(
-                    [*opening[0:3], token[i].start]
-                )
-
-    return parentheses_pairs
 
 
 def tree_without_parens_unchanged(source_code, start_tree, parens_coords):

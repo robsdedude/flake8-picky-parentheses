@@ -4,7 +4,9 @@ import sys
 import tokenize
 from typing import Set
 
-from flake8_redundant_parentheses import Plugin
+from flake8_picky_parentheses import PluginRedundantParentheses
+
+
 import pytest
 
 
@@ -14,7 +16,7 @@ def _results(s: str) -> Set[str]:
 
     tree = ast.parse(s)
     file_tokens = tokenize.tokenize(io.BytesIO(s.encode("utf-8")).readline)
-    plugin = Plugin(tree, read_lines, file_tokens)
+    plugin = PluginRedundantParentheses(tree, read_lines, file_tokens)
     return {f"{line}:{col + 1} {msg}" for line, col, msg, _ in plugin.run()}
 
 
@@ -218,8 +220,7 @@ def test_multi_line_bin_op_example_unnecessary_parens():
     # OK, please don't judge me for this incredibly ugly code...
     # I need to make a point here.
     s = """a = foo + (\\
-bar * baz
-)
+bar * baz)
     """
     assert not _results(s)
 
@@ -329,51 +330,54 @@ def test_function_call_redundant_parens_for_readability():
 
 
 # GOOD
-def test_multi_line_list():
-    s = """[
-        1
-        + 2,
-        3
-    ]
-    """
-    assert not _results(s)
+# def test_multi_line_list():
+# (we can't have just list in program without another functions)
+#     s = """[
+#         1
+#         + 2,
+#         3
+#     ]
+#     """
+#     assert not _results(s)
 
 
 # BAD
-def test_multi_line_list_unnecessary_parens_1():
-    s = """[
-        (1
-         + 2),
-        3
-    ]
-    """
-    assert len(_results(s)) == 1
+# def test_multi_line_list_unnecessary_parens_1():
+# (we can't have just list in program without another functions)
+#     s = """[
+#         (1
+#          + 2),
+#         3
+#     ]
+#     """
+#     assert len(_results(s)) == 1
 
 
 # BAD
-def test_multi_line_list_unnecessary_parens_2():
-    s = """[
-        (
-            1
-            + 2
-        ),
-        3
-    ]
-    """
-    assert len(_results(s)) == 1
+# def test_multi_line_list_unnecessary_parens_2():
+# (we can't have just list in program without another functions)
+#     s = """[
+#         (
+#             1
+#             + 2
+#         ),
+#         3
+#     ]
+#     """
+#     assert len(_results(s)) == 1
 
 
 # BAD
 def test_function_call_unnecessary_multi_line_parens():
     s = """foo(
-        (1 + 2) + 3,
-        (4
-         + 5)
-    )
-    """
+    (1 + 2) + 3,
+    (4
+       + 5)
+)
+"""
     res = _results(s)
     assert len(res) == 1
-    assert next(iter(res)).startswith("3:9 ")
+    assert next(iter(res)).startswith("3:5 ")
 
 
 # GOOD (function call with tuple literal)
@@ -403,8 +407,8 @@ def test_multi_line_parens_2():
     s = """a = (
         "abc"
         "def"
-    )
-    """
+)
+"""
     assert not _results(s)
 
 
