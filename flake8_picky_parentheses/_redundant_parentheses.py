@@ -24,11 +24,11 @@ class PluginRedundantParentheses:
     def __init__(self, tree: ast.AST, read_lines, file_tokens):
         self.source_code_by_lines = list(read_lines())
         self.source_code = "".join(read_lines())
-        self.file_token = list(file_tokens)
+        self.file_tokens = list(file_tokens)
         self.tree = tree
         self.dump_tree = ast.dump(tree)
         # all parentheses coordinates
-        self.all_parens_coords = find_parens_coords(self.file_token)
+        self.all_parens_coords = find_parens_coords(self.file_tokens)
         # filter to only keep parentheses that are not strictly necessary
         self.parens_coords = [
             coords

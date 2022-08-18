@@ -41,6 +41,22 @@ a == b): c + d
     assert _results(s)
 
 
+# BAD (use parentheses in both case of line continuation)
+def test_parentheses_in_if_with_trailing_tab_only_with_first_new_line():
+    s = """if (\t\t
+a == b): c + d
+    """
+    assert _results(s)
+
+
+# BAD (use parentheses in both case of line continuation)
+def test_parentheses_in_if_with_trailing_space_only_with_first_new_line():
+    s = """if (  
+a == b): c + d
+    """
+    assert _results(s)
+
+
 # GOOD (have all brackets on the same line)
 def test_list_in_one_line():
     s = """a = [1, 2, 3]"""
@@ -134,6 +150,28 @@ def test_nested_list_with_enters_4():
     assert not _results(s)
 
 
+# GOOD
+def test_nested_list_addition_1():
+    s = """a = [
+    [1]
+    + [
+        2
+    ]
+]"""
+    assert not _results(s)
+
+
+# BAD
+def test_nested_list_addition_2():
+    s = """a = [
+    [1]
+    + [
+        2
+     ]
+]"""
+    assert _results(s)
+
+
 # BAD
 # (opening bracket is last, closing is on new line but indentation mismatch)
 def test_nested_list_mismatch():
@@ -206,6 +244,27 @@ def test_brackets_on_diff_lines():
     1, 2, 3
 ]
 ]"""
+    assert _results(s)
+
+
+# GOOD
+# (starting on the same line should end on the same line)
+def test_brackets_on_same_lines():
+    s = """a = [1, [
+    2, 3
+]]
+"""
+    assert not _results(s)
+
+
+# BAD
+# (starting on the same line should end on the same line)
+def test_brackets_on_different_lines():
+    s = """a = [1, [
+    2, 3
+]
+]
+"""
     assert _results(s)
 
 
