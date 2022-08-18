@@ -4,7 +4,7 @@ import sys
 import tokenize
 from typing import Set
 
-from flake8_picky_parentheses import Plugin_for_redundant_parentheses
+from flake8_picky_parentheses import PluginRedundantParentheses
 
 
 import pytest
@@ -16,7 +16,7 @@ def _results(s: str) -> Set[str]:
 
     tree = ast.parse(s)
     file_tokens = tokenize.tokenize(io.BytesIO(s.encode("utf-8")).readline)
-    plugin = Plugin_for_redundant_parentheses(tree, read_lines, file_tokens)
+    plugin = PluginRedundantParentheses(tree, read_lines, file_tokens)
     return {f"{line}:{col + 1} {msg}" for line, col, msg, _ in plugin.run()}
 
 

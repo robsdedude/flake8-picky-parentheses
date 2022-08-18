@@ -14,8 +14,10 @@ from typing import (
     Type,
 )
 
+from ._util import find_parens_coords
 
-class Plugin_for_redundant_parentheses:
+
+class PluginRedundantParentheses:
     name = __name__
     version = metadata.version("flake8_picky_parentheses")
 
@@ -56,7 +58,7 @@ class Plugin_for_redundant_parentheses:
         else:
             # in Python 3.7 the parentheses are not considered part of the
             # tuple node
-            return Plugin_for_redundant_parentheses._node_in_parens(
+            return PluginRedundantParentheses._node_in_parens(
                 node, parens_coords
             )
 
@@ -109,48 +111,6 @@ class Plugin_for_redundant_parentheses:
             if coords in exceptions:
                 continue
             self.problems.append((*coords[0], msg))
-
-
-def find_parens_coords(token):
-    # return parentheses paris in the form
-    # (
-    #   (open_line, open_col),
-    #   open_end_col,
-    #   replacement,
-    #   (close_line, close_col)
-    # )
-    open_list = ["[", "{", "("]
-    close_list = ["]", "}", ")"]
-    opening_stack = []
-    parentheses_pairs = []
-    last_line = -1
-    for i in range(len(token)):
-        first_in_line = last_line != token[i].start[0]
-        last_line = token[i].end[0]
-        if token[i].type == tokenize.OP:
-            if token[i].string in open_list:
-                if not first_in_line:
-                    opening_stack.append([token[i].start, token[i].end[1],
-                                          " ", token[i].string])
-                    continue
-                if token[i + 1].start[0] == token[i].end[0]:
-                    opening_stack.append([token[i].start,
-                                          token[i + 1].start[1], "",
-                                          token[i].string])
-                    continue
-                # there is only this opening parenthesis on this line
-                opening_stack.append([token[i].start, len(token[i].line) - 2,
-                                      "", token[i].string])
-
-            if token[i].string in close_list:
-                opening = opening_stack.pop()
-                assert (open_list.index(opening[3])
-                        == close_list.index(token[i].string))
-                parentheses_pairs.append(
-                    [*opening[0:3], token[i].start]
-                )
-
-    return parentheses_pairs
 
 
 def tree_without_parens_unchanged(source_code, start_tree, parens_coords):

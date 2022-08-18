@@ -2,7 +2,7 @@ import io
 import tokenize
 from typing import Set
 
-from flake8_picky_parentheses import Plugin_for_brackets_position
+from flake8_picky_parentheses import PluginBracketsPosition
 
 import pytest
 
@@ -12,7 +12,7 @@ def _results(s: str) -> Set[str]:
         return s.splitlines(keepends=True)
 
     file_tokens = tokenize.tokenize(io.BytesIO(s.encode("utf-8")).readline)
-    plugin = Plugin_for_brackets_position(read_lines, file_tokens)
+    plugin = PluginBracketsPosition(None, read_lines, file_tokens)
     return {f"{line}:{col + 1} {msg}" for line, col, msg, _ in plugin.run()}
 
 
@@ -179,10 +179,10 @@ def test_nested_list_mismatch_3():
 # BAD (if you have a closing bracket on a new line, don't open a new bracket)
 def test_nested_list_mismatch_4():
     s = """a = [[
-        1, 2, 3
-    ], [
-        4, 5, 6
-    ]]"""
+    1, 2, 3
+], [
+    4, 5, 6
+]]"""
     assert _results(s)
 
 

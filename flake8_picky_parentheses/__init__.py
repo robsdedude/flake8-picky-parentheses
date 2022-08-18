@@ -1,8 +1,8 @@
-from ._brackets_position import Plugin_for_brackets_position
-from ._redundant_parentheses import Plugin_for_redundant_parentheses
+from ._brackets_position import PluginBracketsPosition
+from ._redundant_parentheses import PluginRedundantParentheses
 
 
 __all__ = [
-    "Plugin_for_brackets_position",
-    "Plugin_for_redundant_parentheses",
+    "PluginBracketsPosition",
+    "PluginRedundantParentheses",
 ]

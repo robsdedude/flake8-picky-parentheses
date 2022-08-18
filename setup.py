@@ -24,9 +24,8 @@ setup(
     packages=["flake8_picky_parentheses"],
     entry_points={
         "flake8.extension": [
-            'PAR0 = '
-            'flake8_picky_parentheses:Plugin_for_redundant_parentheses',
-            'BRA0 = flake8_picky_parentheses:Plugin_for_brackets_position'
+            'PAR0 = flake8_picky_parentheses:PluginRedundantParentheses',
+            'BRA0 = flake8_picky_parentheses:PluginBracketsPosition'
         ],
     },
     classifiers=[
