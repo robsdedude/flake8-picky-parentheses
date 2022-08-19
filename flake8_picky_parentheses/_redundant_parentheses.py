@@ -25,6 +25,8 @@ class PluginRedundantParentheses:
         self.source_code_by_lines = list(read_lines())
         self.source_code = "".join(read_lines())
         self.file_tokens = list(file_tokens)
+        self.file_tokens_nn = [token for token in self.file_tokens
+                               if token.type != tokenize.NL]
         self.tree = tree
         self.dump_tree = ast.dump(tree)
         # all parentheses coordinates
@@ -89,16 +91,24 @@ class PluginRedundantParentheses:
                     for elts in target.elts:
                         tuple_coords = (target.lineno, target.col_offset)
                         elts_coords = (elts.lineno, elts.col_offset)
-                        if tuple_coords <= elts_coords:
-                            for coords in self.parens_coords:
-                                if coords[0] <= tuple_coords:
-                                    exceptions.append(coords)
-                                    break
-                            self.problems.append((
-                                node.lineno, node.col_offset,
-                                "PAR002: Dont use parentheses for "
-                                "unpacking"
-                            ))
+                        if tuple_coords > elts_coords:
+                            continue
+                        for coords in self.parens_coords:
+                            if (coords[0][1] <= tuple_coords[1]
+                               and coords[0][0] == tuple_coords[0]):
+                                exceptions.append(coords)
+                                break
+                        if not any(
+                            self.file_tokens_nn[token].start == elts_coords
+                            and self.file_tokens_nn[token - 1].string == "("
+                            for token in range(len(self.file_tokens_nn))
+                        ):
+                            break
+                        self.problems.append((
+                            node.lineno, node.col_offset,
+                            "PAR002: Dont use parentheses for "
+                            "unpacking"
+                        ))
                         break
 
             if isinstance(node, ast.Tuple):

@@ -12,11 +12,7 @@ from typing import (
     Type,
 )
 
-from ._util import (
-    CLOSE_LIST,
-    find_parens_coords,
-    OPEN_LIST,
-)
+from ._util import find_parens_coords
 
 
 class PluginBracketsPosition:
