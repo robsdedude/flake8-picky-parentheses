@@ -97,7 +97,8 @@ class PluginRedundantParentheses:
                             continue
                         breaker = None
                         for coords in self.parens_coords:
-                            if coords[0] <= tuple_coords:
+                            if (coords[0][1] <= tuple_coords[1]
+                               and coords[0][0] == tuple_coords[0]):
                                 exceptions.append(coords)
                                 break
                         for token in range(len(self.file_tokens_nn)):
@@ -121,16 +122,6 @@ class PluginRedundantParentheses:
                     if self._check_parens_is_tuple(node, coords):
                         exceptions.append(coords)
                         break
-
-            # if isinstance(node, ast.Name):
-            #     for coords in self.parens_coords:
-            #         if self._check_parens_is_tuple(node, coords):
-            #             self.problems.append((
-            #                 node.lineno, node.col_offset,
-            #                 "PAR002: Dont use parentheses for "
-            #                 "unpacking"
-            #             ))
-            #             break
 
         for coords in self.parens_coords:
             if coords in exceptions:
