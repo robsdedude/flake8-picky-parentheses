@@ -2,9 +2,9 @@ import io
 import tokenize
 from typing import Set
 
-from flake8_picky_parentheses import PluginBracketsPosition
-
 import pytest
+
+from flake8_picky_parentheses import PluginBracketsPosition
 
 
 @pytest.fixture(params=[True, False])
@@ -34,7 +34,8 @@ def plugin(request):
 def test_parentheses_in_if_on_new_line(plugin):
     s = """if (
 a == b
-): c + d
+): 
+    c + d
     """
     assert not plugin(s)
 
@@ -42,7 +43,8 @@ a == b
 # BAD (use parentheses in both case of line continuation)
 def test_parentheses_in_if_only_with_second_new_line(plugin):
     s = """if ( a == b
-): c + d
+): 
+    c + d
     """
     assert not plugin(s)
 
@@ -50,7 +52,17 @@ def test_parentheses_in_if_only_with_second_new_line(plugin):
 # BAD (use parentheses in both case of line continuation)
 def test_parentheses_in_if_only_with_first_new_line(plugin):
     s = """if (
-a == b): c + d
+a == b): 
+    c + d
+    """
+    assert plugin(s)
+
+
+# BAD (don't put the if body on the same line, m'kay?)
+def test_if_body_on_new_line_after_multi_line_condition(plugin):
+    s = """if (
+a == b
+): c + d
     """
     assert plugin(s)
 
@@ -58,7 +70,8 @@ a == b): c + d
 # BAD (use parentheses in both case of line continuation)
 def test_parentheses_in_if_with_trailing_tab_only_with_first_new_line(plugin):
     s = """if (\t\t
-a == b): c + d
+a == b): 
+    c + d
     """
     assert plugin(s)
 
@@ -66,7 +79,8 @@ a == b): c + d
 # BAD (use parentheses in both case of line continuation)
 def test_parentheses_in_if_with_trailing_space_only_with_first_new_line(plugin):
     s = """if (  
-a == b): c + d
+a == b): 
+    c + d
     """
     assert plugin(s)
 
@@ -236,6 +250,16 @@ def test_nested_list_mismatch_4(plugin):
     4, 5, 6
 ]]"""
     assert plugin(s)
+
+
+# BAD (only OPs and comments  after a closing bracket on a new line)
+def test_nested_list_mismatch_5(plugin):
+    s = """a = [[
+    1, 2, 3
+], [4, 5, 6]]"""
+    messages = plugin(s)
+    assert len(messages) == 1
+    assert list(messages)[0].startswith("3:1")
 
 
 # BAD
@@ -451,7 +475,8 @@ def test_nested_tuple_with_enters_3(plugin):
 def test_parentheses_in_while_on_new_line(plugin):
     s = """while (
 a == b
-): c + d
+): 
+    c + d
     """
     assert not plugin(s)
 
@@ -459,7 +484,8 @@ a == b
 # BAD (use parentheses in both case of line continuation)
 def test_parentheses_in_while_only_with_second_new_line(plugin):
     s = """while ( a == b
-): c + d
+): 
+    c + d
     """
     assert not plugin(s)
 
@@ -467,7 +493,8 @@ def test_parentheses_in_while_only_with_second_new_line(plugin):
 # BAD (use parentheses in both case of line continuation)
 def test_parentheses_in_while_only_with_first_new_line(plugin):
     s = """while (
-a == b): c + d
+a == b): 
+    c + d
     """
     assert plugin(s)
 
@@ -504,3 +531,82 @@ def test_simple_with(plugin):
 def test_with_two_args(plugin):
     s = """with (foo as bar, baz as foobar):"""
     assert not plugin(s)
+
+
+# if there is a closing bracket on after a new line, this line should only
+# contain: operators and comments
+
+# GOOD (only other operators on the line after closing parenthesis)
+def test_nested_new_lines_1(plugin):
+    s = """@pytest.mark.parametrize(
+    ("test_config", "expected_failure", "expected_failure_message"),
+    (
+        (
+            {"trust": 1}, ConfigurationError, "The config setting `trust`"
+        ), (  # hello world!
+            {"trust": True}, ConfigurationError, "The config setting `trust`"
+        ), (
+            {"trust": None}, ConfigurationError, "The config setting `trust`"
+        ),
+    )
+)
+"""
+    assert not plugin(s)
+
+
+# GOOD (only other operators on the line after closing parenthesis)
+def test_nested_new_lines_2(plugin):
+    s = """@pytest.mark.parametrize(
+    ("test_config", "expected_failure", "expected_failure_message"),
+    (
+        (
+            {"trust": 1}, ConfigurationError, "The config setting `trust`"
+        ), 
+        (
+            {"trust": True}, ConfigurationError, "The config setting `trust`"
+        ), 
+        (
+            {"trust": None}, ConfigurationError, "The config setting `trust`"
+        ),
+    )
+)
+"""
+    assert not plugin(s)
+
+
+# GOOD (only other operators on the line after closing parenthesis)
+def test_nested_new_lines_3(plugin):
+    s = """@pytest.mark.parametrize(
+    ("test_config", "expected_failure", "expected_failure_message"),
+    (
+        (
+            {"trust": 1}, ConfigurationError, "The config setting `trust`"
+        ) + (
+            {"trust": True}, ConfigurationError, "The config setting `trust`"
+        ), 
+        (
+            {"trust": None}, ConfigurationError, "The config setting `trust`"
+        ),
+    )
+)
+"""
+    assert not plugin(s)
+
+
+# BAD (another tuple on the line after closing parenthesis)
+def test_nested_new_lines_4(plugin):
+    s = """@pytest.mark.parametrize(
+    ("test_config", "expected_failure", "expected_failure_message"),
+    (
+        (
+            {"trust": 1}, ConfigurationError, "The config setting `trust`"
+        ), ({"trust": True}, ConfigurationError, "The config setting `trust`"),
+        (
+            {"trust": None}, ConfigurationError, "The config setting `trust`"
+        ),
+    )
+)
+"""
+    messages = plugin(s)
+    assert len(messages) == 1
+    assert list(messages)[0].startswith("6:9")
