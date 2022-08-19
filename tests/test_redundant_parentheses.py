@@ -160,7 +160,7 @@ def test_tuple_literal_unpacking_in_if(plugin):
 
 
 # BAD (parentheses for tuple literal are optional)
-def test_tuple_literal_unpacking_in_if_redundant_parens_around_condition(plugin):
+def test_unpacking_in_if_redundant_parens_around_condition(plugin):
     s = """if (foo):
         a, b = "a", "b"
     """
@@ -636,3 +636,32 @@ def test_double_superfluous_but_helping_parentheses_around_bin_op(
         s = f"foo = baz {op2} {parent_expr}"
     s = alteration_func(s)
     assert len(plugin(s)) == 1 + introduced_flakes
+
+
+# GOOD (redundant in slice, but help readability)
+def test_parens_in_slice_1(plugin):
+    s = """foo[i:(i + 1)]
+"""
+    assert not plugin(s)
+
+
+# GOOD (redundant in slice, but help readability)
+def test_parens_in_slice_2(plugin):
+    s = """foo[(i - 1):i]
+"""
+    assert not plugin(s)
+
+
+# GOOD (redundant in comprehension, but help readability)
+@pytest.mark.parametrize("comprehension_type", (
+    "()", "[]", "{}",
+))
+def test_if_with_parens_in_comprehension(plugin, comprehension_type):
+    s = f"""{comprehension_type[0]}
+    x
+    for x in range(10) 
+    if (some_super_mega_looooooooooooooooooooooooooooooooooooong_thing
+        or some_other_super_mega_looooooooooooooooooooooong_thing)
+{comprehension_type[1]}
+"""
+    assert not plugin(s)

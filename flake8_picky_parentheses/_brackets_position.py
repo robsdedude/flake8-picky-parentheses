@@ -58,7 +58,9 @@ class PluginBracketsPosition:
         raise AssertionError("This should never happen")
 
     def check_brackets_position(self):
-        for cords in self.all_parens_coords:
+        parens_cords_sorted = sorted(self.all_parens_coords,
+                                     key=lambda x: x.token_indexes[0])
+        for cords_idx, cords in enumerate(parens_cords_sorted):
             cords_open, cords_close = cords[0], cords[3]
             if cords_open[0] == cords_close[0]:
                 # opening and closing brackets in the same line
@@ -81,22 +83,26 @@ class PluginBracketsPosition:
                     "the line with the opening bracket"
                 ))
 
-        # if two brackets start on same line (after one another)
-        # they need to end on the same line
-        parens_cords_sorted = sorted(self.all_parens_coords,
-                                     key=lambda x: x[0])
-        for cords1, cords2 in zip(parens_cords_sorted[:-1],
-                                  parens_cords_sorted[1:]):
-            if cords1[3] < cords2[0]:
-                # not nested
-                continue
-            if (cords1[0][0] == cords2[0][0]
-                    and cords1[3][0] != cords2[3][0]):
-                self.problems.append((
-                    cords1[0][0], cords1[0][1],
-                    "BRA001: Opening bracket on one line, but closing on "
-                    "different lines"
-                ))
+            # if lines ends with `[({`, there should be a line that starts
+            # with `]})` (matching closing brackets)
+            for offset, prev_cords in enumerate(
+                reversed(parens_cords_sorted[:cords_idx])
+            ):
+                offset += 1
+                prev_cord_open_token_idx = prev_cords.token_indexes[0]
+                prev_cord_close_token_idx = prev_cords.token_indexes[1]
+                cord_open_token_idx = cords.token_indexes[0]
+                cord_close_token_idx = cords.token_indexes[1]
+                is_opening_sequence = \
+                    prev_cord_open_token_idx == cord_open_token_idx - offset
+                is_closing_sequence = \
+                    prev_cord_close_token_idx == cord_close_token_idx + offset
+                if is_opening_sequence and not is_closing_sequence:
+                    self.problems.append((
+                        cords[0][0], cords[0][1],
+                        "BRA001: Consecutive opening brackets at the end of "
+                        "the line must have consecutive closing brackets."
+                    ))
 
         # if there is a closing bracket on after a new line, this line should
         # only contain: operators and comments
@@ -105,6 +111,16 @@ class PluginBracketsPosition:
             close_cords = cords.close
             if not self.first_in_line(close_cords):
                 continue
+            if (
+                token_idx_end < len(self.file_tokens) - 1
+                and self.file_tokens[token_idx_end + 1].type == tokenize.NAME
+                # and self.file_tokens[token_idx_end + 1].string == "as"
+                # and self.file_tokens[token_idx_end + 2].type == tokenize.NAME
+                # and self.file_tokens[token_idx_end + 3].type == tokenize.OP
+                # and self.file_tokens[token_idx_end + 3].string == ":"
+            ):
+                # the next token is probably a keyword
+                break
             for token in self.file_tokens[token_idx_end:]:
                 if token.type in (tokenize.NL, tokenize.NEWLINE):
                     # reached the next line, all cool
