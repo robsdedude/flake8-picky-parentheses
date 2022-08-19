@@ -24,11 +24,9 @@ class PluginRedundantParentheses:
     def __init__(self, tree: ast.AST, read_lines, file_tokens):
         self.source_code_by_lines = list(read_lines())
         self.source_code = "".join(read_lines())
-        self.file_tokens_nn = []
         self.file_tokens = list(file_tokens)
-        for token in self.file_tokens:
-            if token.type != tokenize.NL:
-                self.file_tokens_nn.append(token)
+        self.file_tokens_nn = [token for token in self.file_tokens
+                               if token.type != tokenize.NL]
         self.tree = tree
         self.dump_tree = ast.dump(tree)
         # all parentheses coordinates
@@ -95,20 +93,16 @@ class PluginRedundantParentheses:
                         elts_coords = (elts.lineno, elts.col_offset)
                         if tuple_coords > elts_coords:
                             continue
-                        breaker = None
                         for coords in self.parens_coords:
                             if (coords[0][1] <= tuple_coords[1]
                                and coords[0][0] == tuple_coords[0]):
                                 exceptions.append(coords)
                                 break
-                        for token in range(len(self.file_tokens_nn)):
-                            if (self.file_tokens_nn[token].start
-                                    == elts_coords
-                                    and self.file_tokens_nn[token - 1].string
-                                    == "("):
-                                breaker = 1
-                                break
-                        if breaker != 1:
+                        if not any(
+                            self.file_tokens_nn[token].start == elts_coords
+                            and self.file_tokens_nn[token - 1].string == "("
+                            for token in range(len(self.file_tokens_nn))
+                        ):
                             break
                         self.problems.append((
                             node.lineno, node.col_offset,
