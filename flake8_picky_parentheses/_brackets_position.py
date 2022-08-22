@@ -77,6 +77,13 @@ class PluginBracketsPosition:
             # check if the closing bracket has the same indentation as the
             # line with the opening bracket
             if cords_close[1] != self.get_line_indentation(cords_open):
+                coun = 0
+                while (self.file_tokens[cords.token_indexes[0] - coun].start[0]
+                        == self.file_tokens[cords.token_indexes[0]].start[0]):
+                    coun += 1
+                if (self.file_tokens[cords.token_indexes[0] - coun].type
+                        == tokenize.STRING):
+                    break
                 self.problems.append((
                     cords_close[0], cords_close[1],
                     "BRA001: Closing bracket has different indentation than "
@@ -107,25 +114,39 @@ class PluginBracketsPosition:
         # if there is a closing bracket on after a new line, this line should
         # only contain: operators and comments
         for cords in self.all_parens_coords:
+            breaker = None
             _, token_idx_end = cords.token_indexes
             close_cords = cords.close
             if not self.first_in_line(close_cords):
                 continue
-            if (
-                token_idx_end < len(self.file_tokens) - 1
-                and self.file_tokens[token_idx_end + 1].type == tokenize.NAME
-                # and self.file_tokens[token_idx_end + 1].string == "as"
-                # and self.file_tokens[token_idx_end + 2].type == tokenize.NAME
-                # and self.file_tokens[token_idx_end + 3].type == tokenize.OP
-                # and self.file_tokens[token_idx_end + 3].string == ":"
-            ):
-                # the next token is probably a keyword
-                break
+            if self.file_tokens[token_idx_end - 1].type == tokenize.NL:
+                token = token_idx_end
+                try:
+                    if (
+                        token_idx_end < len(self.file_tokens) - 1
+                        and self.file_tokens[token_idx_end + 1].type
+                            in (tokenize.NAME, tokenize.OP)
+                    ):
+                        if self.file_tokens[token_idx_end + 1].string == ".":
+                            continue
+                        while (self.file_tokens[token].type != tokenize.NL
+                               or self.file_tokens[token].type
+                               != tokenize.NEWLINE):
+                            if (self.file_tokens[token - 1].string == ":"
+                                    and self.file_tokens[token].type
+                                    in (tokenize.NEWLINE, tokenize.NL)):
+                                # the next token is probably a keyword
+                                breaker = 1
+                                break
+                            token += 1
+                except IndexError:
+                    pass
             for token in self.file_tokens[token_idx_end:]:
                 if token.type in (tokenize.NL, tokenize.NEWLINE):
                     # reached the next line, all cool
                     break
-                if token.type not in (tokenize.OP, tokenize.COMMENT):
+                if (token.type not in (tokenize.OP, tokenize.COMMENT)
+                        and breaker != 1):
                     self.problems.append((
                         close_cords[0], close_cords[1],
                         "BRA001: Only operators and comments are allowed "

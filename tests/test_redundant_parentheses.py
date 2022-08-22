@@ -652,6 +652,27 @@ def test_parens_in_slice_2(plugin):
     assert not plugin(s)
 
 
+# GOOD (redundant in slice but help readability)
+def test_parens_in_slice_3(plugin):
+    s = """foo[i:(-1)]
+"""
+    assert not plugin(s)
+
+
+# GOOD ()
+def test_parens_in_slice_4(plugin):
+    s = """foo[i:-1]
+"""
+    assert not plugin(s)
+
+
+# BAD (redundant in slice and don't help readability)
+def test_parens_in_slice_5(plugin):
+    s = """foo[(0):i]
+"""
+    assert len(plugin(s)) == 1
+
+
 # GOOD (redundant in comprehension, but help readability)
 @pytest.mark.parametrize("comprehension_type", (
     "()", "[]", "{}",

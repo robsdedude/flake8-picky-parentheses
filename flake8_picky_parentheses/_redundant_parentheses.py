@@ -73,6 +73,12 @@ class PluginRedundantParentheses:
             ast.BinOp, ast.BoolOp, ast.UnaryOp, ast.Compare, ast.Await
         )
         for node in ast.walk(self.tree):
+            if isinstance(node, ast.Slice):
+                for child in ast.iter_child_nodes(node):
+                    for cords in self.parens_coords:
+                        if ((cords.open[0], cords.open[1] + 1) == (child.lineno, child.col_offset)
+                           and isinstance(child, special_ops_pair_exceptions)):
+                            exceptions.append(cords)
             if isinstance(node, special_ops_pair_exceptions):
                 for child in ast.iter_child_nodes(node):
                     if not isinstance(child, special_ops_pair_exceptions):
@@ -116,6 +122,14 @@ class PluginRedundantParentheses:
                     if self._check_parens_is_tuple(node, coords):
                         exceptions.append(coords)
                         break
+
+            if isinstance(node, ast.comprehension):
+                for cords in self.parens_coords:
+                    for child in node.ifs:
+                        if not self._node_in_parens(child, cords):
+                            break
+                        if cords.open[0] != cords.close[0]:
+                            exceptions.append(cords)
 
         for coords in self.parens_coords:
             if coords in exceptions:
