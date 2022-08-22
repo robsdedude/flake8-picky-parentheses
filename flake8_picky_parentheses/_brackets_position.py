@@ -33,16 +33,14 @@ class PluginBracketsPosition:
         for line, col, msg in self.problems:
             yield line, col, msg, type(self)
 
-    @staticmethod
-    def first_in_line(cords, source_code):
+    def first_in_line(self, cords):
         return all(
-            source_code[cords[0] - 1][col] in (" ", "\t")
+            self.source_code_lines[cords[0] - 1][col] in (" ", "\t")
             for col in range(cords[1])
         )
 
-    @staticmethod
-    def last_in_line(cords, source_code):
-        line = source_code[cords[0] - 1]
+    def last_in_line(self, cords):
+        line = self.source_code_lines[cords[0] - 1]
         return all(
             line[col] in (" ", "\t", "\n")
             for col in range(cords[1] + 1, len(line))
@@ -65,9 +63,9 @@ class PluginBracketsPosition:
             if cords_open[0] == cords_close[0]:
                 # opening and closing brackets in the same line
                 continue
-            if not self.last_in_line(cords_open, self.source_code_lines):
+            if not self.last_in_line(cords_open):
                 continue
-            if not self.first_in_line(cords_close, self.source_code_lines):
+            if not self.first_in_line(cords_close):
                 self.problems.append((
                     cords_open[0], cords_open[1],
                     "BRA001: Opening bracket is last, but closing is not "
@@ -99,3 +97,22 @@ class PluginBracketsPosition:
                     "BRA001: Opening bracket on one line, but closing on "
                     "different lines"
                 ))
+
+        # if there is a closing bracket on after a new line, this line should
+        # only contain: operators and comments
+        for cords in self.all_parens_coords:
+            _, token_idx_end = cords.token_indexes
+            close_cords = cords.close
+            if not self.first_in_line(close_cords):
+                continue
+            for token in self.file_tokens[token_idx_end:]:
+                if token.type in (tokenize.NL, tokenize.NEWLINE):
+                    # reached the next line, all cool
+                    break
+                if token.type not in (tokenize.OP, tokenize.COMMENT):
+                    self.problems.append((
+                        close_cords[0], close_cords[1],
+                        "BRA001: Only operators and comments are allowed "
+                        "after a closing bracket on a new line"
+                    ))
+                    break

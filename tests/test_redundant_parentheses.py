@@ -4,10 +4,9 @@ import sys
 import tokenize
 from typing import Set
 
-from flake8_picky_parentheses import PluginRedundantParentheses
-
-
 import pytest
+
+from flake8_picky_parentheses import PluginRedundantParentheses
 
 
 @pytest.fixture(params=[True, False])

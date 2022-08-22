@@ -49,7 +49,7 @@ class PluginRedundantParentheses:
 
     @staticmethod
     def _node_in_parens(node, parens_coords):
-        open_, _, _, close = parens_coords
+        open_, _, _, close, _ = parens_coords
         node_start = (node.lineno, node.col_offset)
         return close > node_start > open_
 
@@ -129,7 +129,7 @@ def tree_without_parens_unchanged(source_code, start_tree, parens_coords):
     Replace a pair of parentheses with a blank string and check if the
     resulting AST is still the same.
     """
-    open_, space, replacement, close = parens_coords
+    open_, space, replacement, close, _ = parens_coords
     lines = source_code.split("\n")
     lines[open_[0] - 1] = (lines[open_[0] - 1][:open_[1]]
                            + replacement
