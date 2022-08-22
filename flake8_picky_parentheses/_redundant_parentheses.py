@@ -38,6 +38,7 @@ class PluginRedundantParentheses:
             if tree_without_parens_unchanged(self.source_code,
                                              self.dump_tree, coords)
         ]
+        self.exceptions = []
         self.problems: List[Tuple[int, int, str]] = []
 
     def run(self) -> Generator[Tuple[int, int, str, Type[Any]], None, None]:
@@ -64,31 +65,47 @@ class PluginRedundantParentheses:
                 node, parens_coords
             )
 
+    def checked_parentheses(self, cords):
+        if cords in self.exceptions or cords[0] in self.problems:
+            return True
+        return False
+
     def check(self) -> None:
         msg = "PAR001: Too many parentheses"
         # exceptions made for parentheses that are not strictly necessary
         # but help readability
-        exceptions = []
         special_ops_pair_exceptions = (
             ast.BinOp, ast.BoolOp, ast.UnaryOp, ast.Compare, ast.Await
         )
         for node in ast.walk(self.tree):
+            breaker = None
             if isinstance(node, ast.Slice):
                 for child in ast.iter_child_nodes(node):
                     for cords in self.parens_coords:
-                        if ((cords.open[0], cords.open[1] + 1) == (child.lineno, child.col_offset)
+                        if self.checked_parentheses(cords):
+                            continue
+                        if ((cords.open[0], cords.open[1] + 1)
+                                == (child.lineno, child.col_offset)
                            and isinstance(child, special_ops_pair_exceptions)):
-                            exceptions.append(cords)
+                            breaker = 1
+                            self.exceptions.append(cords)
+                    if breaker:
+                        break
             if isinstance(node, special_ops_pair_exceptions):
                 for child in ast.iter_child_nodes(node):
                     if not isinstance(child, special_ops_pair_exceptions):
                         continue
                     for coords in self.parens_coords:
+                        if self.checked_parentheses(coords):
+                            continue
                         if self._node_in_parens(node, coords):
                             break
                         if self._node_in_parens(child, coords):
-                            exceptions.append(coords)
+                            self.exceptions.append(coords)
+                            breaker = 1
                             break
+                    if breaker:
+                        break
 
             if isinstance(node, ast.Assign):
                 for target in node.targets:
@@ -100,9 +117,12 @@ class PluginRedundantParentheses:
                         if tuple_coords > elts_coords:
                             continue
                         for coords in self.parens_coords:
+                            if self.checked_parentheses(coords):
+                                continue
                             if (coords[0][1] <= tuple_coords[1]
                                and coords[0][0] == tuple_coords[0]):
-                                exceptions.append(coords)
+                                self.exceptions.append(coords)
+                                breaker = 1
                                 break
                         if not any(
                             self.file_tokens_nn[token].start == elts_coords
@@ -116,23 +136,33 @@ class PluginRedundantParentheses:
                             "unpacking"
                         ))
                         break
+                    if breaker:
+                        break
 
             if isinstance(node, ast.Tuple):
                 for coords in self.parens_coords:
+                    if self.checked_parentheses(coords):
+                        continue
                     if self._check_parens_is_tuple(node, coords):
-                        exceptions.append(coords)
+                        self.exceptions.append(coords)
                         break
 
             if isinstance(node, ast.comprehension):
                 for cords in self.parens_coords:
+                    if self.checked_parentheses(cords):
+                        continue
                     for child in node.ifs:
                         if not self._node_in_parens(child, cords):
                             break
                         if cords.open[0] != cords.close[0]:
-                            exceptions.append(cords)
+                            self.exceptions.append(cords)
+                            breaker = 1
+                            break
+                    if breaker:
+                        break
 
         for coords in self.parens_coords:
-            if coords in exceptions:
+            if coords in self.exceptions:
                 continue
             self.problems.append((*coords[0], msg))
 

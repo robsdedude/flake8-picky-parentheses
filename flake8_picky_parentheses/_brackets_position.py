@@ -114,6 +114,8 @@ class PluginBracketsPosition:
         # if there is a closing bracket on after a new line, this line should
         # only contain: operators and comments
         for cords in self.all_parens_coords:
+            if cords[0] in self.problems:
+                continue
             breaker = None
             _, token_idx_end = cords.token_indexes
             close_cords = cords.close
