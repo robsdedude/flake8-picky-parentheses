@@ -23,14 +23,12 @@ class PluginRedundantParentheses:
     version = metadata.version("flake8_picky_parentheses")
 
     def __init__(self, tree: ast.AST, read_lines, file_tokens):
-        self.source_code_by_lines = list(read_lines())
         self.source_code = "".join(read_lines())
         self.file_tokens = list(file_tokens)
         self.file_tokens_nn = [token for token in self.file_tokens
                                if token.type != tokenize.NL]
         self.tree = tree
         self.dump_tree = ast.dump(tree)
-        self.list_dump_tree = list(self.dump_tree)
 
         current_line = 0
         self.logic_lines = []
