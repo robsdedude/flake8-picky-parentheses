@@ -574,7 +574,7 @@ MULTI_LINE_ALTERATION = (
 @pytest.mark.parametrize("alteration", MULTI_LINE_ALTERATION)
 def test_superfluous_parentheses_after_mono_op(plugin, op, alteration):
     alteration_func, introduced_flakes = alteration
-    s = f"foo = {op} (bar)"
+    s = f"foo = {op} (bar) \n"
     s = alteration_func(s)
     assert len(plugin(s)) == 1 + introduced_flakes
 
@@ -599,7 +599,7 @@ def test_superfluous_but_helping_parentheses_after_mono_op(
 @pytest.mark.parametrize("alteration", MULTI_LINE_ALTERATION)
 def test_superfluous_parentheses_around_bin_op(plugin, op, alteration):
     alteration_func, introduced_flakes = alteration
-    s = f"foo = (foo {op} bar)"
+    s = f"foo = (foo {op} bar) \n"
     s = alteration_func(s)
     assert len(plugin(s)) == 1 + introduced_flakes
 
@@ -631,9 +631,9 @@ def test_double_superfluous_but_helping_parentheses_around_bin_op(
     alteration_func, introduced_flakes = alteration
     parent_expr = f"((foo {op1} bar))"
     if parens_first:
-        s = f"foo = {parent_expr} {op2} baz"
+        s = f"foo = {parent_expr} {op2} baz \n"
     else:
-        s = f"foo = baz {op2} {parent_expr}"
+        s = f"foo = baz {op2} {parent_expr} \n"
     s = alteration_func(s)
     assert len(plugin(s)) == 1 + introduced_flakes
 

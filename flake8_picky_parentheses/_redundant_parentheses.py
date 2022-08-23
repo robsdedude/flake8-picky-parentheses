@@ -1,5 +1,6 @@
 import ast
 import tokenize
+from textwrap import dedent
 try:
     # Python 3.8+
     from importlib import metadata
@@ -29,14 +30,16 @@ class PluginRedundantParentheses:
                                if token.type != tokenize.NL]
         self.tree = tree
         self.dump_tree = ast.dump(tree)
+        self.list_dump_tree = list(self.dump_tree)
+
         # all parentheses coordinates
         self.all_parens_coords = find_parens_coords(self.file_tokens)
         # filter to only keep parentheses that are not strictly necessary
         self.parens_coords = [
             coords
             for coords in self.all_parens_coords
-            if tree_without_parens_unchanged(self.source_code,
-                                             self.dump_tree, coords)
+            if tree_without_parens_unchanged(self.source_code, self.dump_tree,
+                                             coords, self.file_tokens)
         ]
         self.exceptions = []
         self.problems: List[Tuple[int, int, str]] = []
@@ -167,25 +170,81 @@ class PluginRedundantParentheses:
             self.problems.append((*coords[0], msg))
 
 
-def tree_without_parens_unchanged(source_code, start_tree, parens_coords):
+def all_logical_lines(file_tokens):
+    res = []
+    pair = []
+    for i in range(len(file_tokens)):
+        if file_tokens[i].type not in (tokenize.NEWLINE, tokenize.ENCODING):
+            continue
+        elif file_tokens[i].type in (tokenize.NEWLINE, tokenize.ENCODING):
+            pair.append(i)
+            if len(pair) == 2:
+                res.append((file_tokens[pair[0]].start[0], file_tokens[pair[1]].start[0]))
+                pair = [pair[1]]
+    return res
+
+
+def build_tree(code_to_check, start_tree):
+    try:
+        tree = ast.parse(dedent(code_to_check))
+        tree = ast.dump(tree)
+        tree_to_check = tree[24:][:(len(tree[24:]) - 19)]
+    except (ValueError, SyntaxError):
+        return False
+    return tree_to_check in start_tree
+
+
+def separ_logic_lines(source_code, file_tokens, start_tree, current_line):
+    all_logic_lines = all_logical_lines(file_tokens)
+    code_to_check = []
+    for num in range(len(all_logic_lines)):
+        if all_logic_lines[num][0] >= current_line:
+            for counter in range(all_logic_lines[num][0], all_logic_lines[num][1]):
+                code_to_check.append(source_code[counter])
+            str_code_to_check = "\n".join(code_to_check)
+            if build_tree(str_code_to_check, start_tree):
+                return code_to_check, all_logic_lines[num][1]
+            else:
+                continue
+
+
+def tree_without_parens_unchanged(source_code, start_tree, parens_coords,
+                                  file_tokens):
     """Check if parentheses are redundant.
 
     Replace a pair of parentheses with a blank string and check if the
     resulting AST is still the same.
     """
     open_, space, replacement, close, _ = parens_coords
+
+    current_line = 0
+    logic_lines = []
+    logic_lines_num = []
     lines = source_code.split("\n")
-    lines[open_[0] - 1] = (lines[open_[0] - 1][:open_[1]]
-                           + replacement
-                           + lines[open_[0] - 1][space:])
-    shift = 0
-    if open_[0] == close[0]:
-        shift -= (space - open_[1]) - len(replacement)
-    lines[close[0] - 1] = (lines[close[0] - 1][:close[1] + shift]
-                           + " " + lines[close[0] - 1][close[1] + 1 + shift:])
-    code_without_parens = "\n".join(lines)
-    try:
-        tree = ast.parse(code_without_parens)
-    except (ValueError, SyntaxError):
-        return False
-    return ast.dump(tree) == start_tree
+    while current_line <= len(lines) - 2:
+        checked_code, current_line = separ_logic_lines(lines,
+                                                       file_tokens,
+                                                       start_tree,
+                                                       current_line)
+        logic_lines.append(checked_code)
+        logic_lines_num.append(current_line)
+
+    move_lines = 0
+
+    for lines in range(len(logic_lines)):
+        if parens_coords[3][0] <= logic_lines_num[lines]:
+            if logic_lines_num[lines - 1] <= parens_coords[3][0]:
+                move_lines = logic_lines_num[lines - 1]
+            logic_lines[lines][open_[0] - move_lines - 1] = (
+                    logic_lines[lines][open_[0] - move_lines - 1][:open_[1]] + replacement + logic_lines[lines][open_[0] - move_lines - 1][space:]
+            )
+            shift = 0
+            if open_[0] == close[0]:
+                shift -= (space - open_[1]) - len(replacement)
+            logic_lines[lines][close[0] - move_lines - 1] = (
+                    logic_lines[lines][close[0] - move_lines - 1][:close[1] + shift] + " " + logic_lines[lines][close[0] - move_lines - 1][close[1] + 1 + shift:]
+            )
+            logic_lines[lines] = "\n".join(logic_lines[lines])
+            return build_tree(logic_lines[lines], start_tree)
+
+
