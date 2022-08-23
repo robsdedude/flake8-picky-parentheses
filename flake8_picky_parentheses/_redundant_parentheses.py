@@ -188,7 +188,10 @@ def build_tree(code_to_check, start_tree):
     try:
         tree = ast.parse(dedent(code_to_check))
         tree = ast.dump(tree)
-        tree_to_check = tree[24:][:(len(tree[24:]) - 19)]
+        if sys.version_info >= (3, 8):
+            tree_to_check = tree[24:][:(len(tree[24:]) - 19)]
+        else:
+            tree_to_check = tree[13:][:(len(tree) - 15)]
     except (ValueError, SyntaxError):
         return False
     return tree_to_check in start_tree
