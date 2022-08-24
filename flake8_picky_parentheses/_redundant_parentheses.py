@@ -36,7 +36,7 @@ class PluginRedundantParentheses:
         self.logic_lines_trees = []
         lines = self.source_code.split("\n")
         while current_line <= len(lines) - 2:
-            checked_code, current_line, logic_line_tree = separ_logic_lines(
+            checked_code, current_line, logic_line_tree = separate_logic_lines(
                                                           lines,
                                                           self.file_tokens,
                                                           self.dump_tree,
@@ -84,8 +84,8 @@ class PluginRedundantParentheses:
                 node, parens_coords
             )
 
-    def checked_parentheses(self, cords):
-        if cords in self.exceptions or cords[0] in self.problems:
+    def checked_parentheses(self, coords):
+        if coords in self.exceptions or coords[0] in self.problems:
             return True
         return False
 
@@ -115,9 +115,8 @@ class PluginRedundantParentheses:
                     if not isinstance(child, special_ops_pair_exceptions):
                         continue
                     for coords in self.parens_coords:
-                        if self.checked_parentheses(coords):
-                            continue
-                        if self._node_in_parens(node, coords):
+                        if (self.checked_parentheses(coords)
+                                or self._node_in_parens(node, coords)):
                             continue
                         if self._node_in_parens(child, coords):
                             self.exceptions.append(coords)
@@ -190,9 +189,7 @@ def all_logical_lines(file_tokens):
     res = []
     pair = []
     for i in range(len(file_tokens)):
-        if file_tokens[i].type not in (tokenize.NEWLINE, tokenize.ENCODING):
-            continue
-        elif file_tokens[i].type in (tokenize.NEWLINE, tokenize.ENCODING):
+        if file_tokens[i].type in (tokenize.NEWLINE, tokenize.ENCODING):
             pair.append(i)
             if len(pair) == 2:
                 res.append((file_tokens[pair[0]].start[0],
@@ -214,7 +211,7 @@ def build_tree(code_to_check, start_tree):
     return tree_to_check in str(start_tree)
 
 
-def separ_logic_lines(source_code, file_tokens, start_tree, current_line):
+def separate_logic_lines(source_code, file_tokens, start_tree, current_line):
     all_logic_lines = all_logical_lines(file_tokens)
     code_to_check = []
     for num in range(len(all_logic_lines)):
@@ -243,23 +240,21 @@ def tree_without_parens_unchanged(start_tree, parens_coords, logic_lines,
     move_lines = 0
 
     for lines in range(len(logic_lines)):
-        if parens_coords[3][0] <= logic_lines_num[lines]:
-            if logic_lines_num[lines - 1] <= parens_coords[3][0]:
-                move_lines = logic_lines_num[lines - 1]
-            split_line = logic_lines[lines].split("\n")
-            split_line[open_[0] - move_lines - 1] = (
-                    split_line[open_[0] - move_lines - 1][:open_[1]]
-                    + replacement
-                    + split_line[open_[0] - move_lines - 1][space:]
-            )
-            shift = 0
-            if open_[0] == close[0]:
-                shift -= (space - open_[1]) - len(replacement)
-            split_line[close[0] - move_lines - 1] = (
-                    split_line[close[0] - move_lines - 1][:close[1] + shift]
-                    + " "
-                    + split_line[close[0] - move_lines - 1][close[1] + 1
-                                                            + shift:]
-            )
-            random_line = "\n".join(split_line)
-            return build_tree(random_line, start_tree)
+        if parens_coords[3][0] > logic_lines_num[lines]:
+            continue
+        if logic_lines_num[lines - 1] <= parens_coords[3][0]:
+            move_lines = logic_lines_num[lines - 1]
+        split_line = logic_lines[lines].split("\n")
+        split_line[open_[0] - move_lines - 1] = (
+                split_line[open_[0] - move_lines - 1][:open_[1]] + replacement
+                + split_line[open_[0] - move_lines - 1][space:]
+        )
+        shift = 0
+        if open_[0] == close[0]:
+            shift -= (space - open_[1]) - len(replacement)
+        split_line[close[0] - move_lines - 1] = (
+                split_line[close[0] - move_lines - 1][:close[1] + shift] + " "
+                + split_line[close[0] - move_lines - 1][close[1] + 1 + shift:]
+        )
+        random_line = "\n".join(split_line)
+        return build_tree(random_line, start_tree)
