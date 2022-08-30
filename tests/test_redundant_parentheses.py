@@ -686,3 +686,11 @@ def test_if_with_parens_in_comprehension(plugin, comprehension_type):
 {comprehension_type[1]}
 """
     assert not plugin(s)
+
+
+def test_empty(plugin):
+    s = """
+
+
+"""
+    assert not plugin(s)

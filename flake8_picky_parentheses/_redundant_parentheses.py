@@ -36,6 +36,8 @@ class PluginRedundantParentheses:
         self.logic_lines_trees = []
         lines = self.source_code.split("\n")
         while current_line <= len(lines) - 2:
+            if not bool(self.source_code and not self.source_code.isspace()):
+                break
             checked_code, current_line, logic_line_tree = separate_logic_lines(
                                                           lines,
                                                           self.file_tokens,
@@ -195,6 +197,9 @@ def all_logical_lines(file_tokens):
                 res.append((file_tokens[pair[0]].start[0],
                             file_tokens[pair[1]].start[0]))
                 pair = [pair[1]]
+    if len(res) == 0 and len(pair) == 1:
+        res.append((file_tokens[0].start[0], file_tokens[pair[0]].start[0]))
+
     return res
 
 

@@ -736,3 +736,11 @@ def test_method_chaining(plugin):
     baz
 ).foobar()"""
     assert not plugin(s)
+
+
+def test_empty(plugin):
+    s = """
+    
+    
+"""
+    assert not plugin(s)
