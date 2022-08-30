@@ -77,13 +77,14 @@ a == b):
 
 
 # BAD (use parentheses in both case of line continuation)
-def test_parentheses_in_if_with_trailing_space_only_with_first_new_line(plugin):
+def test_parentheses_if_with_trailing_space_only_with_first_new_line(plugin):
     s = """if (  
 a == b):
     c + d
     """
     assert plugin(s)
 
+a = ((1))
 
 # GOOD (have all brackets on the same line)
 def test_list_in_one_line(plugin):

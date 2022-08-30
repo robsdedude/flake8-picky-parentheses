@@ -208,7 +208,13 @@ def build_tree(code_to_check, start_tree):
             tree_to_check = tree[13:][:(len(tree) - 15)]
     except (ValueError, SyntaxError):
         return False
-    return tree_to_check in str(start_tree)
+    if type(start_tree) is list:
+        for dump_tree in start_tree:
+            if tree_to_check in str(dump_tree):
+                return True
+    else:
+        return tree_to_check in start_tree
+    return False
 
 
 def separate_logic_lines(source_code, file_tokens, start_tree, current_line):
