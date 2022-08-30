@@ -29,24 +29,20 @@ class PluginRedundantParentheses:
                                if token.type != tokenize.NL]
         self.tree = tree
         self.dump_tree = ast.dump(tree)
-
-        current_line = 0
-        self.logic_lines = []
-        self.logic_lines_num = []
-        self.logic_lines_trees = []
         lines = self.source_code.split("\n")
-        while current_line <= len(lines) - 2:
-            if not bool(self.source_code and not self.source_code.isspace()):
-                break
-            checked_code, current_line, logic_line_tree = separate_logic_lines(
-                                                          lines,
-                                                          self.file_tokens,
-                                                          self.dump_tree,
-                                                          current_line
-            )
-            self.logic_lines.append(checked_code)
-            self.logic_lines_num.append(current_line)
-            self.logic_lines_trees.append(logic_line_tree)
+
+        if self.source_code and not self.source_code.isspace():
+            current_line = 0
+            self.logic_lines = []
+            self.logic_lines_num = []
+            self.logic_lines_trees = []
+            while current_line <= len(lines) - 2:
+                checked_code, current_line, logic_line_tree = \
+                    separate_logic_lines(lines, self.file_tokens,
+                                         self.dump_tree, current_line)
+                self.logic_lines.append(checked_code)
+                self.logic_lines_num.append(current_line)
+                self.logic_lines_trees.append(logic_line_tree)
 
         # all parentheses coordinates
         self.all_parens_coords = find_parens_coords(self.file_tokens)

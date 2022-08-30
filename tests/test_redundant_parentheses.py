@@ -14,9 +14,12 @@ def plugin(request):
     use_run = request.param
 
     def run(s: str) -> Set[str]:
-        def read_lines():
-            return s.splitlines(keepends=True)
+        lines = s.splitlines(keepends=True)
 
+        def read_lines():
+            return lines
+
+        line_iter = iter(lines)
         tree = ast.parse(s)
         file_tokens = tokenize.tokenize(io.BytesIO(s.encode("utf-8")).readline)
         plugin = PluginRedundantParentheses(tree, read_lines, file_tokens)
@@ -31,6 +34,10 @@ def plugin(request):
         return {f"{line}:{col + 1} {msg}" for line, col, msg, _ in problems}
 
     return run
+
+
+def test_foo(plugin):
+    assert plugin("a = (1)\n")
 
 
 def _ws_generator():

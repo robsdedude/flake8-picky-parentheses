@@ -12,10 +12,13 @@ def plugin(request):
     use_run = request.param
 
     def run(s: str) -> Set[str]:
-        def read_lines():
-            return s.splitlines(keepends=True)
+        lines = s.splitlines(keepends=True)
 
-        file_tokens = tokenize.tokenize(io.BytesIO(s.encode("utf-8")).readline)
+        def read_lines():
+            return lines
+
+        line_iter = iter(lines)
+        file_tokens = list(tokenize.generate_tokens(lambda: next(line_iter)))
         plugin = PluginBracketsPosition(None, read_lines, file_tokens)
         if use_run:
             problems = plugin.run()
