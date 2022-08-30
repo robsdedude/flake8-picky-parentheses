@@ -187,14 +187,20 @@ def all_logical_lines(file_tokens):
     res = []
     pair = []
     for i in range(len(file_tokens)):
-        if file_tokens[i].type in (tokenize.NEWLINE, tokenize.ENCODING):
+        if (file_tokens[i].type in (tokenize.NEWLINE, tokenize.ENCODING)
+                or i == 0):
             pair.append(i)
             if len(pair) == 2:
+                if pair[0] == 0 and file_tokens[pair[0]].type != tokenize.ENCODING:
+                    res.append((file_tokens[pair[0]].start[0] - 1,
+                                file_tokens[pair[1]].start[0]))
+                    pair = [pair[1]]
+                    continue
                 res.append((file_tokens[pair[0]].start[0],
                             file_tokens[pair[1]].start[0]))
                 pair = [pair[1]]
     if len(res) == 0 and len(pair) == 1:
-        res.append((file_tokens[0].start[0], file_tokens[pair[0]].start[0]))
+        res.append((file_tokens[0].start[0] - 1, file_tokens[pair[0]].start[0]))
 
     return res
 
