@@ -208,7 +208,7 @@ def build_tree(code_to_check, start_tree):
             tree_to_check = tree[13:][:(len(tree) - 15)]
     except (ValueError, SyntaxError):
         return False
-    if type(start_tree) is list:
+    if isinstance(start_tree, list):
         for dump_tree in start_tree:
             if tree_to_check in str(dump_tree):
                 return True
