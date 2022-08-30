@@ -84,7 +84,6 @@ a == b):
     """
     assert plugin(s)
 
-a = ((1))
 
 # GOOD (have all brackets on the same line)
 def test_list_in_one_line(plugin):
