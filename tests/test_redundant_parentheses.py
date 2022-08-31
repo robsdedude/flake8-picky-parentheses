@@ -701,3 +701,13 @@ def test_empty(plugin):
 
 """
     assert not plugin(s)
+
+
+def test_two_functions(plugin):
+    s = """def foo():
+    pass
+
+def bar():
+    pass
+"""
+    assert not plugin(s)
