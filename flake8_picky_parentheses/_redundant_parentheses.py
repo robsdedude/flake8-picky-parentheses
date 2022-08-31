@@ -177,49 +177,32 @@ def logic_lines_by_tree(tree, source_code):
     logic_lines_num = []
     logic_lines_trees = []
     logic_lines = []
-    if len(tree.body) > 1:
-        for parents in range(1, len(tree.body) + 1):
-            code_to_check = []
+    for parents in range(1, len(tree.body) + 1):
+        code_to_check = []
+        if len(tree.body) > 1:
             if parents == 1:
                 logic_lines_num.append(tree.body[parents].lineno - 1)
                 for counter in range(0, logic_lines_num[parents - 1]):
                     code_to_check.append(source_code[counter])
-                str_code_to_check = "\n".join(code_to_check)
-                logic_line_tree = ast.dump(ast.parse(str_code_to_check))
-                logic_lines_trees.append(logic_line_tree)
-                logic_lines.append(str_code_to_check)
-
             elif parents == len(tree.body):
                 logic_lines_num.append(len(source_code) - 1)
                 for counter in range(tree.body[parents - 1].lineno - 1,
                                      logic_lines_num[parents - 1]):
                     code_to_check.append(source_code[counter])
-                str_code_to_check = "\n".join(code_to_check)
-                logic_line_tree = ast.dump(ast.parse(str_code_to_check))
-                logic_lines_trees.append(logic_line_tree)
-                logic_lines.append(str_code_to_check)
-
             else:
                 logic_lines_num.append(tree.body[parents].lineno - 1)
                 for counter in range(logic_lines_num[parents - 2],
                                      logic_lines_num[parents - 1]):
                     code_to_check.append(source_code[counter])
-                str_code_to_check = "\n".join(code_to_check)
-                logic_line_tree = ast.dump(ast.parse(str_code_to_check))
-                logic_lines_trees.append(logic_line_tree)
-                logic_lines.append(str_code_to_check)
-
-        return logic_lines, logic_lines_num, logic_lines_trees
-    else:
-        code_to_check = []
-        logic_lines_num.append(len(source_code))
-        for counter in range(0, logic_lines_num[0]):
-            code_to_check.append(source_code[counter])
+        else:
+            logic_lines_num.append(len(source_code))
+            for counter in range(0, logic_lines_num[0]):
+                code_to_check.append(source_code[counter])
         str_code_to_check = "\n".join(code_to_check)
         logic_line_tree = ast.dump(ast.parse(str_code_to_check))
         logic_lines_trees.append(logic_line_tree)
         logic_lines.append(str_code_to_check)
-        return logic_lines, logic_lines_num, logic_lines_trees
+    return logic_lines, logic_lines_num, logic_lines_trees
 
 
 def all_logical_lines(file_tokens):
