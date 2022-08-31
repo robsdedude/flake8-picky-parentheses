@@ -183,26 +183,42 @@ def logic_lines_by_tree(tree, source_code):
             if parents == 1:
                 logic_lines_num.append(tree.body[parents].lineno - 1)
                 for counter in range(0, logic_lines_num[parents - 1]):
+                    if check_for_weird_symbol(source_code[counter]):
+                        continue
                     code_to_check.append(source_code[counter])
             elif parents == len(tree.body):
                 logic_lines_num.append(len(source_code) - 1)
                 for counter in range(tree.body[parents - 1].lineno - 1,
                                      logic_lines_num[parents - 1]):
+                    if check_for_weird_symbol(source_code[counter]):
+                        continue
                     code_to_check.append(source_code[counter])
             else:
                 logic_lines_num.append(tree.body[parents].lineno - 1)
                 for counter in range(logic_lines_num[parents - 2],
                                      logic_lines_num[parents - 1]):
+                    if check_for_weird_symbol(source_code[counter]):
+                        continue
                     code_to_check.append(source_code[counter])
         else:
             logic_lines_num.append(len(source_code))
             for counter in range(0, logic_lines_num[0]):
+                if check_for_weird_symbol(source_code[counter]):
+                    continue
                 code_to_check.append(source_code[counter])
         str_code_to_check = "\n".join(code_to_check)
         logic_line_tree = ast.dump(ast.parse(str_code_to_check))
         logic_lines_trees.append(logic_line_tree)
         logic_lines.append(str_code_to_check)
     return logic_lines, logic_lines_num, logic_lines_trees
+
+
+def check_for_weird_symbol(source_line):
+    try:
+        if source_line[0] == "@":
+            return True
+    except IndexError:
+        return False
 
 
 def all_logical_lines(file_tokens):
