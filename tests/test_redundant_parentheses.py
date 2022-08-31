@@ -707,7 +707,7 @@ def test_empty(plugin):
 def test_two_functions(plugin, beginning_ws):
     s = """def foo():
     pass
-
+    
 def bar():
     pass
 """
