@@ -31,18 +31,8 @@ class PluginRedundantParentheses:
         self.dump_tree = ast.dump(tree)
         lines = self.source_code.split("\n")
 
-        if self.source_code and not self.source_code.isspace():
-            current_line = 0
-            self.logic_lines = []
-            self.logic_lines_num = []
-            self.logic_lines_trees = []
-            while current_line <= len(lines) - 2:
-                checked_code, current_line, logic_line_tree = \
-                    separate_logic_lines(lines, self.file_tokens,
-                                         self.dump_tree, current_line)
-                self.logic_lines.append(checked_code)
-                self.logic_lines_num.append(current_line)
-                self.logic_lines_trees.append(logic_line_tree)
+        self.logic_lines, self.logic_lines_num, self.logic_lines_trees = \
+            logic_lines_by_tree(self.tree, lines)
 
         # all parentheses coordinates
         self.all_parens_coords = find_parens_coords(self.file_tokens)
@@ -183,26 +173,72 @@ class PluginRedundantParentheses:
             self.problems.append((*coords[0], msg))
 
 
-def all_logical_lines(file_tokens):
-    res = []
-    pair = []
-    for i in range(len(file_tokens)):
-        if (file_tokens[i].type in (tokenize.NEWLINE, tokenize.ENCODING)
-                or i == 0):
-            pair.append(i)
-            if len(pair) == 2:
-                if pair[0] == 0 and file_tokens[pair[0]].type != tokenize.ENCODING:
-                    res.append((file_tokens[pair[0]].start[0] - 1,
-                                file_tokens[pair[1]].start[0]))
-                    pair = [pair[1]]
-                    continue
-                res.append((file_tokens[pair[0]].start[0],
-                            file_tokens[pair[1]].start[0]))
-                pair = [pair[1]]
-    if len(res) == 0 and len(pair) == 1:
-        res.append((file_tokens[0].start[0] - 1, file_tokens[pair[0]].start[0]))
+def logic_lines_by_tree(tree, source_code):
+    logic_lines_num = []
+    logic_lines_trees = []
+    logic_lines = []
+    if len(tree.body) > 1:
+        for parents in range(1, len(tree.body) + 1):
+            code_to_check = []
+            if parents == len(tree.body) and len(tree.body) > 1:
+                logic_lines_num.append(len(source_code) - 1)
+                for counter in range(tree.body[parents - 1].lineno - 1,
+                                     logic_lines_num[parents - 1]):
+                    code_to_check.append(source_code[counter])
+                str_code_to_check = "\n".join(code_to_check)
+                logic_line_tree = ast.dump(ast.parse(str_code_to_check))
+                logic_lines_trees.append(logic_line_tree)
+                logic_lines.append(str_code_to_check)
 
-    return res
+            else:
+                logic_lines_num.append(tree.body[parents].lineno - 1)
+                try:
+                    for counter in range(logic_lines_num[parents - 2],
+                                         logic_lines_num[parents - 1]):
+                        code_to_check.append(source_code[counter])
+                except IndexError:
+                    for counter in range(0, logic_lines_num[parents - 1]):
+                        code_to_check.append(source_code[counter])
+                str_code_to_check = "\n".join(code_to_check)
+                logic_line_tree = ast.dump(ast.parse(str_code_to_check))
+                logic_lines_trees.append(logic_line_tree)
+                logic_lines.append(str_code_to_check)
+
+        return logic_lines, logic_lines_num, logic_lines_trees
+    else:
+        code_to_check = []
+        logic_lines_num.append(len(source_code))
+        for counter in range(0, logic_lines_num[0]):
+            code_to_check.append(source_code[counter])
+        str_code_to_check = "\n".join(code_to_check)
+        logic_line_tree = ast.dump(ast.parse(str_code_to_check))
+        logic_lines_trees.append(logic_line_tree)
+        logic_lines.append(str_code_to_check)
+        return logic_lines, logic_lines_num, logic_lines_trees
+
+
+# def all_logical_lines(file_tokens):
+#     res = []
+#     pair = []
+#     for i in range(len(file_tokens)):
+#         if (file_tokens[i].type in (tokenize.NEWLINE, tokenize.ENCODING)
+#                 or i == 0):
+#             pair.append(i)
+#             if len(pair) == 2:
+#                 if (pair[0] == 0
+#                         and file_tokens[pair[0]].type != tokenize.ENCODING):
+#                     res.append((file_tokens[pair[0]].start[0] - 1,
+#                                 file_tokens[pair[1]].start[0]))
+#                     pair = [pair[1]]
+#                     continue
+#                 res.append((file_tokens[pair[0]].start[0],
+#                             file_tokens[pair[1]].start[0]))
+#                 pair = [pair[1]]
+#     if len(res) == 0 and len(pair) == 1:
+#         res.append((file_tokens[0].start[0] - 1,
+#                     file_tokens[pair[0]].start[0]))
+#
+#     return res
 
 
 def build_tree(code_to_check, start_tree):
@@ -224,21 +260,21 @@ def build_tree(code_to_check, start_tree):
     return False
 
 
-def separate_logic_lines(source_code, file_tokens, start_tree, current_line):
-    all_logic_lines = all_logical_lines(file_tokens)
-    code_to_check = []
-    for num in range(len(all_logic_lines)):
-        if all_logic_lines[num][0] >= current_line:
-            for counter in range(all_logic_lines[num][0],
-                                 all_logic_lines[num][1]):
-                code_to_check.append(source_code[counter])
-            str_code_to_check = "\n".join(code_to_check)
-            if build_tree(str_code_to_check, start_tree):
-                logic_line_tree = ast.dump(ast.parse(str_code_to_check))
-                return (str_code_to_check, all_logic_lines[num][1],
-                        logic_line_tree)
-            else:
-                continue
+# def separate_logic_lines(source_code, file_tokens, start_tree, current_line):
+#     all_logic_lines = all_logical_lines(file_tokens)
+#     code_to_check = []
+#     for num in range(len(all_logic_lines)):
+#         if all_logic_lines[num][0] >= current_line:
+#             for counter in range(all_logic_lines[num][0],
+#                                  all_logic_lines[num][1]):
+#                 code_to_check.append(source_code[counter])
+#             str_code_to_check = "\n".join(code_to_check)
+#             if build_tree(str_code_to_check, start_tree):
+#                 logic_line_tree = ast.dump(ast.parse(str_code_to_check))
+#                 return (str_code_to_check, all_logic_lines[num][1],
+#                         logic_line_tree)
+#             else:
+#                 continue
 
 
 def tree_without_parens_unchanged(start_tree, parens_coords, logic_lines,
