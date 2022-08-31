@@ -703,11 +703,14 @@ def test_empty(plugin):
     assert not plugin(s)
 
 
-def test_two_functions(plugin):
+@pytest.mark.parametrize("beginning_ws", (True, False))
+def test_two_functions(plugin, beginning_ws):
     s = """def foo():
     pass
 
 def bar():
     pass
 """
+    if beginning_ws:
+        s = "\n" + s
     assert not plugin(s)
