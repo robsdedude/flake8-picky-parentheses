@@ -266,11 +266,17 @@ def all_logical_lines(file_tokens):
 def build_tree(code_to_check, start_tree):
     try:
         tree = ast.parse(dedent(code_to_check))
-        tree = ast.dump(tree)
+        new_dump_tree = ast.dump(tree)
         if sys.version_info >= (3, 8):
-            tree_to_check = tree[24:][:(len(tree[24:]) - 40)]
+            if ast.ClassDef in tree.body:
+                tree_to_check = new_dump_tree[24:][:(len(new_dump_tree[24:]) - 40)]
+            else:
+                tree_to_check = new_dump_tree[24:][:(len(new_dump_tree[24:]) - 19)]
         else:
-            tree_to_check = tree[13:][:(len(tree) - 36)]
+            if ast.ClassDef in tree.body:
+                tree_to_check = new_dump_tree[13:][:(len(new_dump_tree) - 36)]
+            else:
+                tree_to_check = new_dump_tree[13:][:(len(new_dump_tree) - 17)]
     except (ValueError, SyntaxError):
         return False
     if isinstance(start_tree, list):
