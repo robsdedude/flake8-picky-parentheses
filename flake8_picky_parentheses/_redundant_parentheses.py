@@ -1,6 +1,7 @@
 import ast
 import tokenize
 from textwrap import dedent
+
 try:
     # Python 3.8+
     from importlib import metadata
@@ -31,8 +32,21 @@ class PluginRedundantParentheses:
         self.dump_tree = ast.dump(tree)
         lines = self.source_code.split("\n")
 
-        self.logic_lines, self.logic_lines_num, self.logic_lines_trees = \
-            logic_lines_by_tree(self.tree, lines)
+        if self.source_code and not self.source_code.isspace():
+            current_line = 0
+            self.logic_lines = []
+            self.logic_lines_num = []
+            self.logic_lines_trees = []
+            while current_line <= len(lines) - 1:
+                try:
+                    checked_code, current_line, logic_line_tree = \
+                        separate_logic_lines(lines, self.file_tokens,
+                                             self.dump_tree, current_line)
+                except TypeError:
+                    break
+                self.logic_lines.append(checked_code)
+                self.logic_lines_num.append(current_line)
+                self.logic_lines_trees.append(logic_line_tree)
 
         # all parentheses coordinates
         self.all_parens_coords = find_parens_coords(self.file_tokens)
@@ -43,7 +57,7 @@ class PluginRedundantParentheses:
             if tree_without_parens_unchanged(self.logic_lines_trees,
                                              coords,
                                              self.logic_lines,
-                                             self.logic_lines_num,)
+                                             self.logic_lines_num, )
         ]
         self.exceptions = []
         self.problems: List[Tuple[int, int, str]] = []
@@ -93,7 +107,8 @@ class PluginRedundantParentheses:
                             continue
                         if ((coords.open[0], coords.open[1] + 1)
                                 == (child.lineno, child.col_offset)
-                           and isinstance(child, special_ops_pair_exceptions)):
+                                and isinstance(child,
+                                               special_ops_pair_exceptions)):
                             breaker = 1
                             self.exceptions.append(coords)
                     if breaker:
@@ -126,14 +141,15 @@ class PluginRedundantParentheses:
                             if self.checked_parentheses(coords):
                                 continue
                             if (coords[0][1] <= tuple_coords[1]
-                               and coords[0][0] == tuple_coords[0]):
+                                    and coords[0][0] == tuple_coords[0]):
                                 self.exceptions.append(coords)
                                 breaker = 1
                                 break
                         if not any(
-                            self.file_tokens_nn[token].start == elts_coords
-                            and self.file_tokens_nn[token - 1].string == "("
-                            for token in range(len(self.file_tokens_nn))
+                                self.file_tokens_nn[token].start == elts_coords
+                                and self.file_tokens_nn[
+                                    token - 1].string == "("
+                                for token in range(len(self.file_tokens_nn))
                         ):
                             break
                         self.problems.append((
@@ -173,52 +189,54 @@ class PluginRedundantParentheses:
             self.problems.append((*coords[0], msg))
 
 
-def logic_lines_by_tree(tree, source_code):
-    logic_lines_num = []
-    logic_lines_trees = []
-    logic_lines = []
-    for parents in range(1, len(tree.body) + 1):
-        code_to_check = []
-        if len(tree.body) > 1:
-            if parents == 1:
-                logic_lines_num.append(tree.body[parents].lineno - 1)
-                for counter in range(0, logic_lines_num[parents - 1]):
-                    if check_for_weird_symbol(source_code[counter]):
-                        continue
-                    code_to_check.append(source_code[counter])
-            elif parents == len(tree.body):
-                logic_lines_num.append(len(source_code) - 1)
-                for counter in range(tree.body[parents - 1].lineno - 1,
-                                     logic_lines_num[parents - 1]):
-                    if check_for_weird_symbol(source_code[counter]):
-                        continue
-                    code_to_check.append(source_code[counter])
-            else:
-                logic_lines_num.append(tree.body[parents].lineno - 1)
-                for counter in range(logic_lines_num[parents - 2],
-                                     logic_lines_num[parents - 1]):
-                    if check_for_weird_symbol(source_code[counter]):
-                        continue
-                    code_to_check.append(source_code[counter])
-        else:
-            logic_lines_num.append(len(source_code))
-            for counter in range(0, logic_lines_num[0]):
-                if check_for_weird_symbol(source_code[counter]):
-                    continue
-                code_to_check.append(source_code[counter])
-        str_code_to_check = "\n".join(code_to_check)
-        logic_line_tree = ast.dump(ast.parse(str_code_to_check))
-        logic_lines_trees.append(logic_line_tree)
-        logic_lines.append(str_code_to_check)
-    return logic_lines, logic_lines_num, logic_lines_trees
+# def logic_lines_by_tree(tree, source_code):
+#     logic_lines_num = []
+#     logic_lines_trees = []
+#     logic_lines = []
+#     exception = None
+#     for parents in range(1, len(tree.body) + 1):
+#         code_to_check = []
+#         if len(tree.body) > 1:
+#             if parents == 1:
+#                 logic_lines_num.append(tree.body[parents].lineno - 1)
+#                 for counter in range(0, logic_lines_num[parents - 1]):
+#                     if check_for_weird_symbol(source_code[counter]):
+#                         continue
+#                     code_to_check.append(source_code[counter])
+#             elif parents == len(tree.body):
+#                 logic_lines_num.append(len(source_code) - 1)
+#                 for counter in range(tree.body[parents - 1].lineno - 1,
+#                                      logic_lines_num[parents - 1]):
+#                     if check_for_weird_symbol(source_code[counter]):
+#                         continue
+#                     code_to_check.append(source_code[counter])
+#             else:
+#                 logic_lines_num.append(tree.body[parents].lineno - 1)
+#                 for counter in range(logic_lines_num[parents - 2],
+#                                      logic_lines_num[parents - 1]):
+#                     if check_for_weird_symbol(source_code[counter]):
+#                         continue
+#                     code_to_check.append(source_code[counter])
+#         else:
+#             logic_lines_num.append(len(source_code))
+#             for counter in range(0, logic_lines_num[0]):
+#                 if check_for_weird_symbol(source_code[counter]):
+#                     continue
+#                 code_to_check.append(source_code[counter])
+#         str_code_to_check = "\n".join(code_to_check)
+#         logic_line_tree = ast.dump(ast.parse(str_code_to_check))
+#         logic_lines_trees.append(logic_line_tree)
+#         logic_lines.append(str_code_to_check)
+#     return logic_lines, logic_lines_num, logic_lines_trees
 
 
-def check_for_weird_symbol(source_line):
-    try:
-        if source_line[0] == "@":
-            return True
-    except IndexError:
-        return False
+# def check_for_weird_symbol(source_line):
+#     try:
+#         if source_line[0] == "@":
+#             exception = source_line
+#             return True
+#     except IndexError:
+#         return False
 
 
 def all_logical_lines(file_tokens):
@@ -250,9 +268,9 @@ def build_tree(code_to_check, start_tree):
         tree = ast.parse(dedent(code_to_check))
         tree = ast.dump(tree)
         if sys.version_info >= (3, 8):
-            tree_to_check = tree[24:][:(len(tree[24:]) - 19)]
+            tree_to_check = tree[24:][:(len(tree[24:]) - 40)]
         else:
-            tree_to_check = tree[13:][:(len(tree) - 15)]
+            tree_to_check = tree[13:][:(len(tree) - 36)]
     except (ValueError, SyntaxError):
         return False
     if isinstance(start_tree, list):
@@ -272,6 +290,18 @@ def separate_logic_lines(source_code, file_tokens, start_tree, current_line):
             for counter in range(all_logic_lines[num][0],
                                  all_logic_lines[num][1]):
                 code_to_check.append(source_code[counter])
+            for line_num in range(len(code_to_check)):
+                if code_to_check[line_num] == "":
+                    continue
+                else:
+                    while code_to_check[line_num][0] == " ":
+                        for counter in range(line_num, len(code_to_check)):
+                            try:
+                                code_to_check[counter][0] = ""
+                            except IndexError:
+                                continue
+                    break
+
             str_code_to_check = "\n".join(code_to_check)
             if build_tree(str_code_to_check, start_tree):
                 logic_line_tree = ast.dump(ast.parse(str_code_to_check))
@@ -279,6 +309,11 @@ def separate_logic_lines(source_code, file_tokens, start_tree, current_line):
                         logic_line_tree)
             else:
                 continue
+
+
+def delete_tabs(line):
+    line = line.strip(' \n\t')
+    return line
 
 
 def tree_without_parens_unchanged(start_tree, parens_coords, logic_lines,
