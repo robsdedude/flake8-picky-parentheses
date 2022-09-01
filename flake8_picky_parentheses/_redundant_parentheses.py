@@ -147,8 +147,8 @@ class PluginRedundantParentheses:
                                 break
                         if not any(
                                 self.file_tokens_nn[token].start == elts_coords
-                                and self.file_tokens_nn[
-                                    token - 1].string == "("
+                                and self.file_tokens_nn[token - 1].string
+                                == "("
                                 for token in range(len(self.file_tokens_nn))
                         ):
                             break
@@ -217,22 +217,25 @@ def build_tree(code_to_check, start_tree):
     try:
         tree = ast.parse(dedent(code_to_check))
         new_dump_tree = ast.dump(tree)
-        if sys.version_info >= (3, 8):
-            for node in tree.body:
-                if isinstance(node, ast.ClassDef):
+        for node in tree.body:
+            if isinstance(node, ast.ClassDef):
+                if sys.version_info >= (3, 8):
                     tree_to_check = new_dump_tree[24:][
-                                    :(len(new_dump_tree[24:]) - 40)]
-                else:
-                    tree_to_check = new_dump_tree[24:][
-                                    :(len(new_dump_tree[24:]) - 19)]
-        else:
-            for node in tree.body:
-                if isinstance(node, ast.ClassDef):
-                    tree_to_check = new_dump_tree[13:][
-                                    :(len(new_dump_tree) - 36)]
+                                    :(len(new_dump_tree[24:]) - 40)
+                    ]
                 else:
                     tree_to_check = new_dump_tree[13:][
-                                    :(len(new_dump_tree) - 17)]
+                                    :(len(new_dump_tree) - 36)
+                    ]
+            else:
+                if sys.version_info >= (3, 8):
+                    tree_to_check = new_dump_tree[24:][
+                                    :(len(new_dump_tree[24:]) - 19)
+                    ]
+                else:
+                    tree_to_check = new_dump_tree[13:][
+                                    :(len(new_dump_tree) - 17)
+                    ]
     except (ValueError, SyntaxError):
         return False
     if isinstance(start_tree, list):
@@ -255,14 +258,11 @@ def separate_logic_lines(source_code, file_tokens, start_tree, current_line):
             for line_num in range(len(code_to_check)):
                 if code_to_check[line_num] == "":
                     continue
-                else:
-                    while code_to_check[line_num][0] == " ":
-                        for counter in range(line_num, len(code_to_check)):
-                            try:
-                                code_to_check[counter][0] = ""
-                            except IndexError:
-                                continue
-                    break
+                while code_to_check[line_num][0] == " ":
+                    for counter in range(line_num, len(code_to_check)):
+                        code_to_check[counter][0] = ""
+                        continue
+                break
 
             str_code_to_check = "\n".join(code_to_check)
             if build_tree(str_code_to_check, start_tree):
