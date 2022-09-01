@@ -270,15 +270,19 @@ def build_tree(code_to_check, start_tree):
         if sys.version_info >= (3, 8):
             for node in tree.body:
                 if isinstance(node, ast.ClassDef):
-                    tree_to_check = new_dump_tree[24:][:(len(new_dump_tree[24:]) - 40)]
+                    tree_to_check = new_dump_tree[24:][
+                                    :(len(new_dump_tree[24:]) - 40)]
                 else:
-                    tree_to_check = new_dump_tree[24:][:(len(new_dump_tree[24:]) - 19)]
+                    tree_to_check = new_dump_tree[24:][
+                                    :(len(new_dump_tree[24:]) - 19)]
         else:
             for node in tree.body:
                 if isinstance(node, ast.ClassDef):
-                    tree_to_check = new_dump_tree[13:][:(len(new_dump_tree) - 36)]
+                    tree_to_check = new_dump_tree[13:][
+                                    :(len(new_dump_tree) - 36)]
                 else:
-                    tree_to_check = new_dump_tree[13:][:(len(new_dump_tree) - 17)]
+                    tree_to_check = new_dump_tree[13:][
+                                    :(len(new_dump_tree) - 17)]
     except (ValueError, SyntaxError):
         return False
     if isinstance(start_tree, list):
