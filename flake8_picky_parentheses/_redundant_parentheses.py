@@ -218,6 +218,17 @@ def build_tree(code_to_check, start_tree):
         tree = ast.parse(dedent(code_to_check))
         new_dump_tree = ast.dump(tree)
         for node in tree.body:
+            if (isinstance(start_tree, list)
+                    and isinstance(node, ast.FunctionDef)):
+                for dump_tree in start_tree:
+                    if node.decorator_list:
+                        decorator_pos = new_dump_tree.index("decorator_list")
+                        if (new_dump_tree[24:][:decorator_pos - 27]
+                                in dump_tree
+                                and new_dump_tree[decorator_pos:]
+                                [:(len(new_dump_tree[decorator_pos:]) - 54)]
+                                in dump_tree):
+                            return True
             if isinstance(node, ast.ClassDef):
                 if sys.version_info >= (3, 8):
                     tree_to_check = new_dump_tree[24:][
@@ -250,18 +261,21 @@ def build_tree(code_to_check, start_tree):
 def separate_logic_lines(source_code, file_tokens, start_tree, current_line):
     all_logic_lines = all_logical_lines(file_tokens)
     code_to_check = []
+    checked_lines = 0
+    prev_moved = 0
     for num in range(len(all_logic_lines)):
         if all_logic_lines[num][0] >= current_line:
             for counter in range(all_logic_lines[num][0],
                                  all_logic_lines[num][1]):
                 code_to_check.append(source_code[counter])
             for line_num in range(len(code_to_check)):
+                if line_num < checked_lines:
+                    continue
                 if code_to_check[line_num] == "":
                     continue
-                while code_to_check[line_num][0] == " ":
-                    for counter in range(line_num, len(code_to_check)):
-                        code_to_check[counter][0] = ""
-                        continue
+                code_to_check, checked_lines, prev_moved = delete_tabs(
+                    code_to_check, line_num, prev_moved
+                )
                 break
 
             str_code_to_check = "\n".join(code_to_check)
@@ -273,9 +287,32 @@ def separate_logic_lines(source_code, file_tokens, start_tree, current_line):
                 continue
 
 
-def delete_tabs(line):
-    line = line.strip(' \n\t')
-    return line
+def delete_tabs(line, line_num, prev_moved):
+    counter = 0
+    changed = None
+    if prev_moved == 0:
+        for num in range(len(line[line_num])):
+            if line[line_num][num] == " ":
+                counter += 1
+            else:
+                break
+    else:
+        counter = prev_moved
+    for delete in range(0, counter):
+        for lines in range(line_num, len(line)):
+            try:
+                if line[lines][0] == " ":
+                    line[lines] = line[lines][1:]
+                    changed = counter
+                else:
+                    counter = delete
+                    break
+            except IndexError:
+                continue
+    if changed:
+        return line, len(line), counter
+    else:
+        return line, 0, 0
 
 
 def tree_without_parens_unchanged(start_tree, parens_coords, logic_lines,
