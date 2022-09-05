@@ -31,13 +31,17 @@ class PluginRedundantParentheses:
         self.tree = tree
         self.dump_tree = ast.dump(tree)
         lines = self.source_code.split("\n")
-        self.all_logic_lines = all_logical_lines(self.file_tokens)
+        self.all_logic_line = all_logical_lines(self.file_tokens)
 
         if self.source_code and not self.source_code.isspace():
             current_line = 0
-            self.logic_lines, self.logic_lines_num, self.logic_lines_trees = \
-                separate_logic_lines(lines, self.dump_tree, current_line,
-                                     self.all_logic_lines)
+            self.logic_lines, self.logic_lines_num, self.logic_lines_trees, \
+                self.logic_line_move = separate_logic_lines(
+                                                            lines,
+                                                            self.dump_tree,
+                                                            current_line,
+                                                            self.all_logic_line
+                )
 
         # all parentheses coordinates
         self.all_parens_coords = find_parens_coords(self.file_tokens)
@@ -48,7 +52,8 @@ class PluginRedundantParentheses:
             if tree_without_parens_unchanged(self.logic_lines_trees,
                                              coords,
                                              self.logic_lines,
-                                             self.logic_lines_num, )
+                                             self.logic_lines_num,
+                                             self.logic_line_move)
         ]
         self.exceptions = []
         self.problems: List[Tuple[int, int, str]] = []
@@ -248,6 +253,7 @@ def separate_logic_lines(source_code, start_tree, current_line,
     logic_lines_num = []
     logic_lines_trees = []
     code_to_check = []
+    logic_line_move = []
     checked_lines = 0
     prev_moved = 0
     for num in range(len(all_logic_lines)):
@@ -269,12 +275,13 @@ def separate_logic_lines(source_code, start_tree, current_line,
                 logic_lines.append(str_code_to_check)
                 logic_lines_num.append(all_logic_lines[num][1])
                 logic_lines_trees.append(logic_line_tree)
+                logic_line_move.append(prev_moved)
                 code_to_check = []
                 checked_lines = 0
                 prev_moved = 0
             else:
                 continue
-    return logic_lines, logic_lines_num, logic_lines_trees
+    return logic_lines, logic_lines_num, logic_lines_trees, logic_line_move
 
 
 def delete_tabs(line, line_num, prev_moved):
@@ -306,7 +313,7 @@ def delete_tabs(line, line_num, prev_moved):
 
 
 def tree_without_parens_unchanged(start_tree, parens_coords, logic_lines,
-                                  logic_lines_num):
+                                  logic_lines_num, logic_line_move):
     """Check if parentheses are redundant.
 
     Replace a pair of parentheses with a blank string and check if the
@@ -323,15 +330,23 @@ def tree_without_parens_unchanged(start_tree, parens_coords, logic_lines,
             move_lines = logic_lines_num[lines - 1]
         split_line = logic_lines[lines].split("\n")
         split_line[open_[0] - move_lines - 1] = (
-                split_line[open_[0] - move_lines - 1][:open_[1]] + replacement
-                + split_line[open_[0] - move_lines - 1][space:]
+                split_line[open_[0] - move_lines - 1][:open_[1]
+                                                      - logic_line_move[lines]]
+                + replacement
+                + split_line[open_[0] - move_lines - 1][space
+                                                        - logic_line_move
+                                                        [lines]:]
         )
         shift = 0
         if open_[0] == close[0]:
             shift -= (space - open_[1]) - len(replacement)
         split_line[close[0] - move_lines - 1] = (
-                split_line[close[0] - move_lines - 1][:close[1] + shift] + " "
-                + split_line[close[0] - move_lines - 1][close[1] + 1 + shift:]
+                split_line[close[0] - move_lines - 1][:close[1] + shift
+                                                      - logic_line_move[lines]]
+                + " "
+                + split_line[close[0] - move_lines - 1][close[1] + 1 + shift
+                                                        - logic_line_move
+                                                        [lines]:]
         )
         random_line = "\n".join(split_line)
         return build_tree(random_line, start_tree)
