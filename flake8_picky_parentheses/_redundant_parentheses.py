@@ -217,38 +217,31 @@ def build_tree(code_to_check, start_tree):
     try:
         tree = ast.parse(dedent(code_to_check))
         new_dump_tree = ast.dump(tree)
-        for node in tree.body:
-            if (isinstance(start_tree, list)
-                    and isinstance(node, ast.FunctionDef)):
-                for dump_tree in start_tree:
-                    if node.decorator_list:
-                        decorator_pos = new_dump_tree.index("decorator_list")
-                        if (new_dump_tree[24:][:decorator_pos - 27]
-                                in dump_tree
-                                and new_dump_tree[decorator_pos:]
-                                [:(len(new_dump_tree[decorator_pos:]) - 54)]
-                                in dump_tree):
-                            return True
-            if isinstance(node, ast.ClassDef):
-                if sys.version_info >= (3, 8):
-                    tree_to_check = new_dump_tree[24:][
-                                    :(len(new_dump_tree[24:]) - 40)
-                    ]
-                else:
-                    tree_to_check = new_dump_tree[13:][
-                                    :(len(new_dump_tree) - 36)
-                    ]
-            else:
-                if sys.version_info >= (3, 8):
-                    tree_to_check = new_dump_tree[24:][
-                                    :(len(new_dump_tree[24:]) - 19)
-                    ]
-                else:
-                    tree_to_check = new_dump_tree[13:][
-                                    :(len(new_dump_tree) - 17)
-                    ]
     except (ValueError, SyntaxError):
         return False
+    for node in tree.body:
+        if (isinstance(start_tree, list)
+                and isinstance(node, ast.FunctionDef)):
+            for dump_tree in start_tree:
+                if node.decorator_list:
+                    decorator_pos = new_dump_tree.index("decorator_list")
+                    if (new_dump_tree[24:][:decorator_pos - 27] in dump_tree
+                        and new_dump_tree[decorator_pos:]
+                            [:(len(new_dump_tree[decorator_pos:]) - 54)]
+                            in dump_tree):
+                        return True
+        if isinstance(node, ast.ClassDef):
+            if sys.version_info >= (3, 8):
+                tree_to_check = new_dump_tree[24:][:(len(new_dump_tree[24:])
+                                                     - 40)]
+            else:
+                tree_to_check = new_dump_tree[13:][:(len(new_dump_tree) - 36)]
+        else:
+            if sys.version_info >= (3, 8):
+                tree_to_check = new_dump_tree[24:][:(len(new_dump_tree[24:])
+                                                     - 19)]
+            else:
+                tree_to_check = new_dump_tree[13:][:(len(new_dump_tree) - 17)]
     if isinstance(start_tree, list):
         for dump_tree in start_tree:
             if tree_to_check in str(dump_tree):
@@ -269,9 +262,7 @@ def separate_logic_lines(source_code, file_tokens, start_tree, current_line):
                                  all_logic_lines[num][1]):
                 code_to_check.append(source_code[counter])
             for line_num in range(len(code_to_check)):
-                if line_num < checked_lines:
-                    continue
-                if code_to_check[line_num] == "":
+                if line_num < checked_lines or code_to_check[line_num] == "":
                     continue
                 code_to_check, checked_lines, prev_moved = delete_tabs(
                     code_to_check, line_num, prev_moved
