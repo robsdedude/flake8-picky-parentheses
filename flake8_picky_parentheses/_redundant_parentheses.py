@@ -31,22 +31,13 @@ class PluginRedundantParentheses:
         self.tree = tree
         self.dump_tree = ast.dump(tree)
         lines = self.source_code.split("\n")
+        self.all_logic_lines = all_logical_lines(self.file_tokens)
 
         if self.source_code and not self.source_code.isspace():
             current_line = 0
-            self.logic_lines = []
-            self.logic_lines_num = []
-            self.logic_lines_trees = []
-            while current_line <= len(lines) - 1:
-                try:
-                    checked_code, current_line, logic_line_tree = \
-                        separate_logic_lines(lines, self.file_tokens,
-                                             self.dump_tree, current_line)
-                except TypeError:
-                    break
-                self.logic_lines.append(checked_code)
-                self.logic_lines_num.append(current_line)
-                self.logic_lines_trees.append(logic_line_tree)
+            self.logic_lines, self.logic_lines_num, self.logic_lines_trees = \
+                separate_logic_lines(lines, self.dump_tree, current_line,
+                                     self.all_logic_lines)
 
         # all parentheses coordinates
         self.all_parens_coords = find_parens_coords(self.file_tokens)
@@ -226,7 +217,7 @@ def build_tree(code_to_check, start_tree):
                 if node.decorator_list:
                     decorator_pos = new_dump_tree.index("decorator_list")
                     if (new_dump_tree[24:][:decorator_pos - 27] in dump_tree
-                        and new_dump_tree[decorator_pos:]
+                            and new_dump_tree[decorator_pos:]
                             [:(len(new_dump_tree[decorator_pos:]) - 54)]
                             in dump_tree):
                         return True
@@ -251,8 +242,11 @@ def build_tree(code_to_check, start_tree):
     return False
 
 
-def separate_logic_lines(source_code, file_tokens, start_tree, current_line):
-    all_logic_lines = all_logical_lines(file_tokens)
+def separate_logic_lines(source_code, start_tree, current_line,
+                         all_logic_lines):
+    logic_lines = []
+    logic_lines_num = []
+    logic_lines_trees = []
     code_to_check = []
     checked_lines = 0
     prev_moved = 0
@@ -272,10 +266,15 @@ def separate_logic_lines(source_code, file_tokens, start_tree, current_line):
             str_code_to_check = "\n".join(code_to_check)
             if build_tree(str_code_to_check, start_tree):
                 logic_line_tree = ast.dump(ast.parse(str_code_to_check))
-                return (str_code_to_check, all_logic_lines[num][1],
-                        logic_line_tree)
+                logic_lines.append(str_code_to_check)
+                logic_lines_num.append(all_logic_lines[num][1])
+                logic_lines_trees.append(logic_line_tree)
+                code_to_check = []
+                checked_lines = 0
+                prev_moved = 0
             else:
                 continue
+    return logic_lines, logic_lines_num, logic_lines_trees
 
 
 def delete_tabs(line, line_num, prev_moved):
