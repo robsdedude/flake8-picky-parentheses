@@ -12,10 +12,13 @@ def plugin(request):
     use_run = request.param
 
     def run(s: str) -> Set[str]:
-        def read_lines():
-            return s.splitlines(keepends=True)
+        lines = s.splitlines(keepends=True)
 
-        file_tokens = tokenize.tokenize(io.BytesIO(s.encode("utf-8")).readline)
+        def read_lines():
+            return lines
+
+        line_iter = iter(lines)
+        file_tokens = list(tokenize.generate_tokens(lambda: next(line_iter)))
         plugin = PluginBracketsPosition(None, read_lines, file_tokens)
         if use_run:
             problems = plugin.run()
@@ -34,7 +37,7 @@ def plugin(request):
 def test_parentheses_in_if_on_new_line(plugin):
     s = """if (
 a == b
-): 
+):
     c + d
     """
     assert not plugin(s)
@@ -43,7 +46,7 @@ a == b
 # BAD (use parentheses in both case of line continuation)
 def test_parentheses_in_if_only_with_second_new_line(plugin):
     s = """if ( a == b
-): 
+):
     c + d
     """
     assert not plugin(s)
@@ -52,7 +55,7 @@ def test_parentheses_in_if_only_with_second_new_line(plugin):
 # BAD (use parentheses in both case of line continuation)
 def test_parentheses_in_if_only_with_first_new_line(plugin):
     s = """if (
-a == b): 
+a == b):
     c + d
     """
     assert plugin(s)
@@ -70,16 +73,16 @@ a == b
 # BAD (use parentheses in both case of line continuation)
 def test_parentheses_in_if_with_trailing_tab_only_with_first_new_line(plugin):
     s = """if (\t\t
-a == b): 
+a == b):
     c + d
     """
     assert plugin(s)
 
 
 # BAD (use parentheses in both case of line continuation)
-def test_parentheses_in_if_with_trailing_space_only_with_first_new_line(plugin):
+def test_parentheses_if_with_trailing_space_only_with_first_new_line(plugin):
     s = """if (  
-a == b): 
+a == b):
     c + d
     """
     assert plugin(s)
@@ -242,7 +245,9 @@ def test_nested_list_mismatch_3(plugin):
     assert plugin(s)
 
 
-# BAD (if you have a closing bracket on a new line, don't open a new bracket)
+# BAD
+# (consecutive opening brackets at the end of the line must have consecutive
+#  closing brackets)
 def test_nested_list_mismatch_4(plugin):
     s = """a = [[
     1, 2, 3
@@ -258,13 +263,13 @@ def test_nested_list_mismatch_5(plugin):
     1, 2, 3
 ], [4, 5, 6]]"""
     messages = plugin(s)
-    assert len(messages) == 1
-    assert list(messages)[0].startswith("3:1")
+    assert len(messages) == 2
+    messages = sorted(list(messages))
+    assert messages[0].startswith("1:6")
+    assert messages[1].startswith("3:1")
 
 
-# BAD
-# (1. if you have a closing bracket on a new line, don't open a new bracket
-#  2. the first closing bracket's indentation is a missmatch)
+# BAD (the first closing bracket's indentation is a missmatch)
 def test_combine_two_faults(plugin):
     s = """a = [[
     1, 2, 3
@@ -277,11 +282,33 @@ def test_combine_two_faults(plugin):
 # BAD
 # (all opening brackets that are consecutive on the same line are on the same
 # line should also have all closing brackets on the same line)
-def test_brackets_on_diff_lines(plugin):
+def test_brackets_on_diff_lines_1(plugin):
     s = """a = [[
     1, 2, 3
 ]
 ]"""
+    assert plugin(s)
+
+
+# BAD
+# (all opening brackets that are consecutive on the same line are on the same
+# line should also have all closing brackets on the same line)
+def test_brackets_on_diff_lines_2(plugin):
+    s = """a = {[[
+    1, 2, 3
+]
+]}"""
+    assert plugin(s)
+
+
+# BAD
+# (all opening brackets that are consecutive on the same line are on the same
+# line should also have all closing brackets on the same line)
+def test_brackets_on_diff_lines_3(plugin):
+    s = """a = {[[
+    1, 2, 3
+]]
+}"""
     assert plugin(s)
 
 
@@ -295,15 +322,25 @@ def test_brackets_on_same_lines(plugin):
     assert not plugin(s)
 
 
-# BAD
-# (starting on the same line should end on the same line)
-def test_brackets_on_different_lines(plugin):
+# GOOD
+# (plugin only checks brackets that end lines)
+def test_brackets_on_different_lines_1(plugin):
     s = """a = [1, [
     2, 3
 ]
 ]
 """
-    assert plugin(s)
+    assert not plugin(s)
+
+
+# GOOD
+# (plugin only checks brackets that end lines)
+def test_brackets_on_different_lines_2(plugin):
+    s = """a = [1, [
+    2, 3
+]]
+"""
+    assert not plugin(s)
 
 
 def test_dict_in_one_line(plugin):
@@ -475,7 +512,7 @@ def test_nested_tuple_with_enters_3(plugin):
 def test_parentheses_in_while_on_new_line(plugin):
     s = """while (
 a == b
-): 
+):
     c + d
     """
     assert not plugin(s)
@@ -484,7 +521,7 @@ a == b
 # BAD (use parentheses in both case of line continuation)
 def test_parentheses_in_while_only_with_second_new_line(plugin):
     s = """while ( a == b
-): 
+):
     c + d
     """
     assert not plugin(s)
@@ -493,7 +530,7 @@ def test_parentheses_in_while_only_with_second_new_line(plugin):
 # BAD (use parentheses in both case of line continuation)
 def test_parentheses_in_while_only_with_first_new_line(plugin):
     s = """while (
-a == b): 
+a == b):
     c + d
     """
     assert plugin(s)
@@ -524,12 +561,67 @@ def test_bad_import_in_two_lines(plugin):
 
 
 def test_simple_with(plugin):
-    s = """with foo as bar:"""
+    s = """with foo as bar:
+    pass
+"""
+    assert not plugin(s)
+
+
+def test_simple_with_multi_line_1(plugin):
+    s = """with foo(
+    a, b, c
+) as bar:
+    pass
+"""
+    assert not plugin(s)
+
+
+def test_simple_with_multi_line_2(plugin):
+    s = """with foobar({
+    k1: v1,
+    k2: v2
+}) as baz:
+    pass
+"""
     assert not plugin(s)
 
 
 def test_with_two_args(plugin):
     s = """with (foo as bar, baz as foobar):"""
+    assert not plugin(s)
+
+
+# GOOD
+def test_with_two_args_multi_line(plugin):
+    s = """with (
+    foo as bar,
+    baz as foobar
+):"""
+    assert not plugin(s)
+
+
+# BAD
+def test_with_two_args_multi_line_misaligned_close_1(plugin):
+    s = """with (
+    foo as bar,
+    baz as foobar
+    ):"""
+    assert plugin(s)
+
+
+# BAD
+def test_with_two_args_multi_line_misaligned_close_2(plugin):
+    s = """with (
+    foo as bar,
+    baz as foobar):"""
+    assert plugin(s)
+
+
+# GOOD
+def test_function_args_line_break(plugin):
+    s = """zip(parens_cords_sorted[:-1],
+   parens_cords_sorted[1:])
+"""
     assert not plugin(s)
 
 
@@ -610,3 +702,48 @@ def test_nested_new_lines_4(plugin):
     messages = plugin(s)
     assert len(messages) == 1
     assert list(messages)[0].startswith("6:9")
+
+
+# GOOD
+def test_indentation_after_multi_line_string(plugin):
+    s = '''script = """
+!: BOLT 4.3
+{}{}
+S: SUCCESS
+""".format(
+    "!: ALLOW RESTART\n" if restarting else "",
+    "!: ALLOW CONCURRENT\n" if concurrent else "",
+)
+'''
+    assert not plugin(s)
+
+
+# GOOD
+def test_indentation_after_multi_line_string_in_block(plugin):
+    s = '''if foo:
+    script = """
+    !: BOLT 4.3
+    {}{}
+    S: SUCCESS
+    """.format(
+        "!: ALLOW RESTART\n" if restarting else "",
+        "!: ALLOW CONCURRENT\n" if concurrent else "",
+    )
+'''
+    assert not plugin(s)
+
+
+# GOOD
+def test_method_chaining(plugin):
+    s = """foo.bar(
+    baz
+).foobar()"""
+    assert not plugin(s)
+
+
+def test_empty(plugin):
+    s = """
+    
+    
+"""
+    assert not plugin(s)

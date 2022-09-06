@@ -14,11 +14,14 @@ def plugin(request):
     use_run = request.param
 
     def run(s: str) -> Set[str]:
-        def read_lines():
-            return s.splitlines(keepends=True)
+        lines = s.splitlines(keepends=True)
 
+        def read_lines():
+            return lines
+
+        line_iter = iter(lines)
+        file_tokens = list(tokenize.generate_tokens(lambda: next(line_iter)))
         tree = ast.parse(s)
-        file_tokens = tokenize.tokenize(io.BytesIO(s.encode("utf-8")).readline)
         plugin = PluginRedundantParentheses(tree, read_lines, file_tokens)
         if use_run:
             problems = plugin.run()
@@ -31,6 +34,10 @@ def plugin(request):
         return {f"{line}:{col + 1} {msg}" for line, col, msg, _ in problems}
 
     return run
+
+
+def test_foo(plugin):
+    assert plugin("a = (1)\n")
 
 
 def _ws_generator():
@@ -160,7 +167,7 @@ def test_tuple_literal_unpacking_in_if(plugin):
 
 
 # BAD (parentheses for tuple literal are optional)
-def test_tuple_literal_unpacking_in_if_redundant_parens_around_condition(plugin):
+def test_unpacking_in_if_redundant_parens_around_condition(plugin):
     s = """if (foo):
         a, b = "a", "b"
     """
@@ -574,7 +581,7 @@ MULTI_LINE_ALTERATION = (
 @pytest.mark.parametrize("alteration", MULTI_LINE_ALTERATION)
 def test_superfluous_parentheses_after_mono_op(plugin, op, alteration):
     alteration_func, introduced_flakes = alteration
-    s = f"foo = {op} (bar)"
+    s = f"foo = {op} (bar) \n"
     s = alteration_func(s)
     assert len(plugin(s)) == 1 + introduced_flakes
 
@@ -599,7 +606,7 @@ def test_superfluous_but_helping_parentheses_after_mono_op(
 @pytest.mark.parametrize("alteration", MULTI_LINE_ALTERATION)
 def test_superfluous_parentheses_around_bin_op(plugin, op, alteration):
     alteration_func, introduced_flakes = alteration
-    s = f"foo = (foo {op} bar)"
+    s = f"foo = (foo {op} bar) \n"
     s = alteration_func(s)
     assert len(plugin(s)) == 1 + introduced_flakes
 
@@ -631,8 +638,79 @@ def test_double_superfluous_but_helping_parentheses_around_bin_op(
     alteration_func, introduced_flakes = alteration
     parent_expr = f"((foo {op1} bar))"
     if parens_first:
-        s = f"foo = {parent_expr} {op2} baz"
+        s = f"foo = {parent_expr} {op2} baz \n"
     else:
-        s = f"foo = baz {op2} {parent_expr}"
+        s = f"foo = baz {op2} {parent_expr} \n"
     s = alteration_func(s)
     assert len(plugin(s)) == 1 + introduced_flakes
+
+
+# GOOD (redundant in slice, but help readability)
+def test_parens_in_slice_1(plugin):
+    s = """foo[i:(i + 1)]
+"""
+    assert not plugin(s)
+
+
+# GOOD (redundant in slice, but help readability)
+def test_parens_in_slice_2(plugin):
+    s = """foo[(i - 1):i]
+"""
+    assert not plugin(s)
+
+
+# GOOD (redundant in slice but help readability)
+def test_parens_in_slice_3(plugin):
+    s = """foo[i:(-1)]
+"""
+    assert not plugin(s)
+
+
+# GOOD ()
+def test_parens_in_slice_4(plugin):
+    s = """foo[i:-1]
+"""
+    assert not plugin(s)
+
+
+# BAD (redundant in slice and don't help readability)
+def test_parens_in_slice_5(plugin):
+    s = """foo[(0):i]
+"""
+    assert len(plugin(s)) == 1
+
+
+# GOOD (redundant in comprehension, but help readability)
+@pytest.mark.parametrize("comprehension_type", (
+    "()", "[]", "{}",
+))
+def test_if_with_parens_in_comprehension(plugin, comprehension_type):
+    s = f"""{comprehension_type[0]}
+    x
+    for x in range(10) 
+    if (some_super_mega_looooooooooooooooooooooooooooooooooooong_thing
+        or some_other_super_mega_looooooooooooooooooooooong_thing)
+{comprehension_type[1]}
+"""
+    assert not plugin(s)
+
+
+def test_empty(plugin):
+    s = """
+
+
+"""
+    assert not plugin(s)
+
+
+@pytest.mark.parametrize("beginning_ws", (True, False))
+def test_two_functions(plugin, beginning_ws):
+    s = """def foo():
+    pass
+    
+def bar():
+    pass
+"""
+    if beginning_ws:
+        s = "\n" + s
+    assert not plugin(s)

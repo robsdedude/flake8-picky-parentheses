@@ -46,10 +46,10 @@ class PluginBracketsPosition:
             for col in range(cords[1] + 1, len(line))
         )
 
-    def get_line_indentation(self, cords_open):
+    def get_line_indentation(self, coords_open):
         line_tokens = (
             token for token in self.file_tokens
-            if token.start[0] == cords_open[0]
+            if token.start[0] == coords_open[0]
         )
         for token in line_tokens:
             if token.type == tokenize.INDENT:
@@ -58,60 +58,101 @@ class PluginBracketsPosition:
         raise AssertionError("This should never happen")
 
     def check_brackets_position(self):
-        for cords in self.all_parens_coords:
-            cords_open, cords_close = cords[0], cords[3]
-            if cords_open[0] == cords_close[0]:
+        parens_coords_sorted = sorted(self.all_parens_coords,
+                                      key=lambda x: x.token_indexes[0])
+        for cords_idx, coords in enumerate(parens_coords_sorted):
+            coords_open, coords_close = coords[0], coords[3]
+            if coords_open[0] == coords_close[0]:
                 # opening and closing brackets in the same line
                 continue
-            if not self.last_in_line(cords_open):
+            if not self.last_in_line(coords_open):
                 continue
-            if not self.first_in_line(cords_close):
+            if not self.first_in_line(coords_close):
                 self.problems.append((
-                    cords_open[0], cords_open[1],
+                    coords_open[0], coords_open[1],
                     "BRA001: Opening bracket is last, but closing is not "
                     "on new line"
                 ))
                 continue
             # check if the closing bracket has the same indentation as the
             # line with the opening bracket
-            if cords_close[1] != self.get_line_indentation(cords_open):
+            if coords_close[1] != self.get_line_indentation(coords_open):
+                count = 0
+                while (self.file_tokens[coords.token_indexes[0] - count]
+                       .start[0]
+                        == self.file_tokens[coords.token_indexes[0]].start[0]):
+                    count += 1
+                if (self.file_tokens[coords.token_indexes[0] - count].type
+                        == tokenize.STRING):
+                    break
                 self.problems.append((
-                    cords_close[0], cords_close[1],
+                    coords_close[0], coords_close[1],
                     "BRA001: Closing bracket has different indentation than "
                     "the line with the opening bracket"
                 ))
 
-        # if two brackets start on same line (after one another)
-        # they need to end on the same line
-        parens_cords_sorted = sorted(self.all_parens_coords,
-                                     key=lambda x: x[0])
-        for cords1, cords2 in zip(parens_cords_sorted[:-1],
-                                  parens_cords_sorted[1:]):
-            if cords1[3] < cords2[0]:
-                # not nested
-                continue
-            if (cords1[0][0] == cords2[0][0]
-                    and cords1[3][0] != cords2[3][0]):
-                self.problems.append((
-                    cords1[0][0], cords1[0][1],
-                    "BRA001: Opening bracket on one line, but closing on "
-                    "different lines"
-                ))
+            # if lines ends with `[({`, there should be a line that starts
+            # with `]})` (matching closing brackets)
+            for offset, prev_coords in enumerate(
+                reversed(parens_coords_sorted[:cords_idx])
+            ):
+                offset += 1
+                prev_coord_open_token_idx = prev_coords.token_indexes[0]
+                prev_coord_close_token_idx = prev_coords.token_indexes[1]
+                coord_open_token_idx = coords.token_indexes[0]
+                coord_close_token_idx = coords.token_indexes[1]
+                is_opening_sequence = \
+                    prev_coord_open_token_idx == coord_open_token_idx - offset
+                is_closing_sequence = \
+                    prev_coord_close_token_idx == coord_close_token_idx \
+                    + offset
+                if is_opening_sequence and not is_closing_sequence:
+                    self.problems.append((
+                        coords[0][0], coords[0][1],
+                        "BRA001: Consecutive opening brackets at the end of "
+                        "the line must have consecutive closing brackets."
+                    ))
 
         # if there is a closing bracket on after a new line, this line should
         # only contain: operators and comments
-        for cords in self.all_parens_coords:
-            _, token_idx_end = cords.token_indexes
-            close_cords = cords.close
-            if not self.first_in_line(close_cords):
+        for coords in self.all_parens_coords:
+            if coords[0] in self.problems:
                 continue
+            breaker = None
+            _, token_idx_end = coords.token_indexes
+            close_coords = coords.close
+            if not self.first_in_line(close_coords):
+                continue
+            if self.file_tokens[token_idx_end - 1].type == tokenize.NL:
+                token = token_idx_end
+                try:
+                    if (
+                        token_idx_end < len(self.file_tokens) - 1
+                        and self.file_tokens[token_idx_end + 1].type
+                            in (tokenize.NAME, tokenize.OP)
+                    ):
+                        if self.file_tokens[token_idx_end + 1].string == ".":
+                            continue
+                        while (self.file_tokens[token].type != tokenize.NL
+                               or self.file_tokens[token].type
+                               != tokenize.NEWLINE):
+                            if (self.file_tokens[token - 1].string == ":"
+                                    and self.file_tokens[token].type
+                                    in (tokenize.NEWLINE, tokenize.NL)):
+                                # the next token is probably a keyword
+                                breaker = 1
+                                break
+                            token += 1
+                except IndexError:
+                    pass
             for token in self.file_tokens[token_idx_end:]:
                 if token.type in (tokenize.NL, tokenize.NEWLINE):
                     # reached the next line, all cool
                     break
-                if token.type not in (tokenize.OP, tokenize.COMMENT):
+                if (token.type not in (tokenize.OP, tokenize.COMMENT)
+                        and breaker != 1):
                     self.problems.append((
-                        close_cords[0], close_cords[1],
+                        close_coords[0], close_coords[1],
                         "BRA001: Only operators and comments are allowed "
                         "after a closing bracket on a new line"
                     ))
