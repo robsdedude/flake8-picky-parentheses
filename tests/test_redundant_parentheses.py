@@ -20,8 +20,8 @@ def plugin(request):
             return lines
 
         line_iter = iter(lines)
+        file_tokens = list(tokenize.generate_tokens(lambda: next(line_iter)))
         tree = ast.parse(s)
-        file_tokens = tokenize.tokenize(io.BytesIO(s.encode("utf-8")).readline)
         plugin = PluginRedundantParentheses(tree, read_lines, file_tokens)
         if use_run:
             problems = plugin.run()
