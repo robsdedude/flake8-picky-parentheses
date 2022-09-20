@@ -14,9 +14,9 @@
 
 ## Examples
 
-Program will not complain about first two lines, because in first case 
-parentheses are redundant, but helps readability and in second case we just 
-don't have parentheses. In next three lines there are examples where 
+Program will not complain about first two lines, because in first case
+parentheses are redundant, but helps readability and in second case we just
+don't have parentheses. In next three lines there are examples where
 parentheses are redundant and can not help readability.
 ```sh
 a = ("a",)     #GOOD

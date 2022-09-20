@@ -1,29 +1,33 @@
+from __future__ import annotations
+
 import ast
-import tokenize
+import sys
 from textwrap import dedent
+import tokenize
+import typing as t
 
 try:
     # Python 3.8+
     from importlib import metadata
 except ImportError:
     import importlib_metadata as metadata
-import sys
-from typing import (
-    Any,
-    Generator,
-    List,
-    Tuple,
-    Type,
-)
 
 from ._util import find_parens_coords
+
+if t.TYPE_CHECKING:
+    from ._util import ParensCords
 
 
 class PluginRedundantParentheses:
     name = __name__
     version = metadata.version("flake8_picky_parentheses")
 
-    def __init__(self, tree: ast.AST, read_lines, file_tokens):
+    def __init__(
+        self,
+        tree: ast.AST,
+        read_lines: t.Callable[[], t.List[str]],
+        file_tokens: t.Iterable[tokenize.TokenInfo],
+    ) -> None:
         self.source_code = "".join(read_lines())
         self.file_tokens = list(file_tokens)
         self.file_tokens_nn = [token for token in self.file_tokens
@@ -52,10 +56,12 @@ class PluginRedundantParentheses:
                                              self.logic_lines_num,
                                              self.logic_line_move)
         ]
-        self.exceptions = []
-        self.problems: List[Tuple[int, int, str]] = []
+        self.exceptions: t.List[ParensCords] = []
+        self.problems: t.List[t.Tuple[int, int, str]] = []
 
-    def run(self) -> Generator[Tuple[int, int, str, Type[Any]], None, None]:
+    def run(
+        self
+    ) -> t.Generator[t.Tuple[int, int, str, t.Type[t.Any]], None, None]:
         if not self.parens_coords:
             return
         self.check()
@@ -79,7 +85,7 @@ class PluginRedundantParentheses:
                 node, parens_coords
             )
 
-    def checked_parentheses(self, coords):
+    def checked_parentheses(self, coords) -> bool:
         if coords in self.exceptions or coords[0] in self.problems:
             return True
         return False
@@ -98,7 +104,7 @@ class PluginRedundantParentheses:
                     for coords in self.parens_coords:
                         if self.checked_parentheses(coords):
                             continue
-                        if ((coords.open[0], coords.open[1] + 1)
+                        if ((coords.open_[0], coords.open_[1] + 1)
                                 == (child.lineno, child.col_offset)
                                 and isinstance(child,
                                                special_ops_pair_exceptions)):
@@ -169,7 +175,7 @@ class PluginRedundantParentheses:
                     for child in node.ifs:
                         if not self._node_in_parens(child, coords):
                             break
-                        if coords.open[0] != coords.close[0]:
+                        if coords.open_[0] != coords.close[0]:
                             self.exceptions.append(coords)
                             breaker = 1
                             break
@@ -292,24 +298,21 @@ def tree_without_parens_unchanged(logic_line_trees, parens_coords, logic_lines,
         if logic_lines_num[lines - 1] <= parens_coords[3][0]:
             move_lines = logic_lines_num[lines - 1]
         split_line = logic_lines[lines].split("\n")
-        split_line[open_[0] - move_lines - 1] = (
-                split_line[open_[0] - move_lines - 1][:open_[1]
-                                                      - logic_line_move[lines]]
-                + replacement
-                + split_line[open_[0] - move_lines - 1][space
-                                                        - logic_line_move
-                                                        [lines]:]
+        idx_open_line = open_[0] - move_lines - 1
+        split_line[idx_open_line] = (
+            split_line[idx_open_line][:open_[1] - logic_line_move[lines]]
+            + replacement
+            + split_line[idx_open_line][space - logic_line_move[lines]:]
         )
         shift = 0
         if open_[0] == close[0]:
             shift -= (space - open_[1]) - len(replacement)
-        split_line[close[0] - move_lines - 1] = (
-                split_line[close[0] - move_lines - 1][:close[1] + shift
-                                                      - logic_line_move[lines]]
-                + " "
-                + split_line[close[0] - move_lines - 1][close[1] + 1 + shift
-                                                        - logic_line_move
-                                                        [lines]:]
+        idx_close_line = open_[0] - move_lines - 1
+        shifted_close_col = close[1] + shift - logic_line_move[lines]
+        split_line[idx_close_line] = (
+            split_line[idx_close_line][:shifted_close_col]
+            + " "
+            + split_line[idx_close_line][shifted_close_col + 1:]
         )
-        random_line = "\n".join(split_line)
-        return build_tree(random_line, logic_line_trees)
+        patched_line = "\n".join(split_line)
+        return build_tree(patched_line, logic_line_trees)
