@@ -25,7 +25,7 @@ setup(
     entry_points={
         "flake8.extension": [
             'PAR0 = flake8_picky_parentheses:PluginRedundantParentheses',
-            'BRA0 = flake8_picky_parentheses:PluginBracketsPosition'
+            'PAR1 = flake8_picky_parentheses:PluginBracketsPosition'
         ],
     },
     classifiers=[
