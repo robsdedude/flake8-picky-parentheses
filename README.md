@@ -1,7 +1,8 @@
-# <center>Picky Parentheses</center>
+Picky Parentheses
+=================
 
 Picky Parentheses is a [flake8](https://github.com/pycqa/flake8) plugin that
-nit picks all things parentheses, brackets and braces. The plugin has two
+nitpicks all things parentheses, brackets and braces. The plugin has two
 components:
  1. A checker that warns about redundant parentheses (with some exceptions).
  2. A checker for parentheses, brackets, and braces alignment.
@@ -50,6 +51,7 @@ you can use the `--ignore` or `--extend-ignore` option:
 flake8 [other options] --extend-ignore='PAR1' '<path/to/your/code>'
 ```
 
+
 ## Error Codes
 These are the error codes which you can get using this plugin:
 
@@ -73,7 +75,7 @@ For example:
 a = (("a", "b"))
 ```
 #### `PAR002`
-It means that you use parentheses for unpacking tuple
+It means that you use parentheses for an unpacking expression. For example:
 ```python
 # BAD
 (a,) = "b"
@@ -83,7 +85,7 @@ It means that you use parentheses for unpacking tuple
 These are the error codes for the opinionated alignment checker.
 #### `PAR101`
 It means that the opening bracket is last in its line, but closing one is not
-on a new line
+on a new line. For example:
 ```python
 # BAD
 if (
@@ -112,8 +114,8 @@ a = [1, 2,
      3, 4]
 ```
 #### `PAR102`
-It means that closing bracket is on new line, but there is a indentation mismatch
-
+It means that closing bracket is on new line, but there is a indentation 
+mismatch. For example:
 ```python
 # BAD
 if (
@@ -139,6 +141,7 @@ a = [
     3, 4
 ]
 ```
+
 
 ## Details and Exceptions
 
