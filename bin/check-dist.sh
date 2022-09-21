@@ -11,6 +11,6 @@ then
     echo "usage: ${SCRIPT} VERSION"
     exit 1
 else
-    source "${ROOT}/bin/dist-functions"
+    source "${ROOT}/bin/dist-functions.sh"
     check_file "${DIST}/flake8-picky-parentheses-${VERSION}.tar.gz"
 fi

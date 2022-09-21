@@ -10,6 +10,6 @@ then
     echo "usage: ${SCRIPT} VERSION"
     exit 1
 else
-    source "${ROOT}/bin/dist-functions"
+    source "${ROOT}/bin/dist-functions.sh"
     setup "${VERSION}" sdist
 fi
