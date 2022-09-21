@@ -302,7 +302,7 @@ def tree_without_parens_unchanged(logic_line_trees, parens_coords, logic_lines,
         shift = 0
         if open_[0] == close[0]:
             shift -= (space - open_[1]) - len(replacement)
-        idx_close_line = open_[0] - move_lines - 1
+        idx_close_line = close[0] - move_lines - 1
         shifted_close_col = close[1] + shift - logic_line_move[lines]
         split_line[idx_close_line] = (
             split_line[idx_close_line][:shifted_close_col]
