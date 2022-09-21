@@ -2,8 +2,9 @@ name: main
 
 on:
   pull_request:
-    types: [opened, reopened, edited]
   push:
+    branches:
+      - main
 
 jobs:
   pre-commit:
