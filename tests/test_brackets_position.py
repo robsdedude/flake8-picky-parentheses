@@ -80,7 +80,7 @@ a == b):
 
 # BAD (use parentheses in both case of line continuation)
 def test_parentheses_if_with_trailing_space_only_with_first_new_line(plugin):
-    s = """if (
+    s = "if (  " + """
 a == b):
     c + d
     """
