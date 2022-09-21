@@ -91,7 +91,7 @@ class PluginRedundantParentheses:
             ast.BinOp, ast.BoolOp, ast.UnaryOp, ast.Compare, ast.Await
         )
         for node in ast.walk(self.tree):
-            breaker = None
+            breaker = False
             if isinstance(node, ast.Slice):
                 for child in ast.iter_child_nodes(node):
                     for coords in self.parens_coords:
@@ -101,11 +101,11 @@ class PluginRedundantParentheses:
                                 == (child.lineno, child.col_offset)
                                 and isinstance(child,
                                                special_ops_pair_exceptions)):
-                            breaker = 1
+                            breaker = True
                             self.exceptions.append(coords)
                     if breaker:
                         break
-            if isinstance(node, special_ops_pair_exceptions):
+            elif isinstance(node, special_ops_pair_exceptions):
                 for child in ast.iter_child_nodes(node):
                     if not isinstance(child, special_ops_pair_exceptions):
                         continue
@@ -115,12 +115,12 @@ class PluginRedundantParentheses:
                             continue
                         if self._node_in_parens(child, coords):
                             self.exceptions.append(coords)
-                            breaker = 1
+                            breaker = True
                             break
                     if breaker:
                         break
 
-            if isinstance(node, ast.Assign):
+            elif isinstance(node, ast.Assign):
                 for target in node.targets:
                     if not isinstance(target, ast.Tuple):
                         continue
@@ -132,11 +132,8 @@ class PluginRedundantParentheses:
                     for coords in self.parens_coords:
                         if self.checked_parentheses(coords):
                             continue
-                        if coords.open_ <= elt_coords <= coords.close:
-                            # no need to treat them again later
-                            self.exceptions.append(coords)
+                        if self._node_in_parens(elt, coords):
                             matching_parens = coords
-                            breaker = 1
                             break
                     if not matching_parens:
                         continue
@@ -152,10 +149,11 @@ class PluginRedundantParentheses:
                         "PAR002: Dont use parentheses for "
                         "unpacking"
                     ))
-                    if breaker:
-                        break
+                    # no need to treat them again later
+                    self.exceptions.append(matching_parens)
+                    break
 
-            if isinstance(node, ast.Tuple):
+            elif isinstance(node, ast.Tuple):
                 for coords in self.parens_coords:
                     if self.checked_parentheses(coords):
                         continue
@@ -163,7 +161,7 @@ class PluginRedundantParentheses:
                         self.exceptions.append(coords)
                         break
 
-            if isinstance(node, ast.comprehension):
+            elif isinstance(node, ast.comprehension):
                 for coords in self.parens_coords:
                     if self.checked_parentheses(coords):
                         continue
@@ -172,7 +170,7 @@ class PluginRedundantParentheses:
                             break
                         if coords.open_[0] != coords.close[0]:
                             self.exceptions.append(coords)
-                            breaker = 1
+                            breaker = True
                             break
                     if breaker:
                         break
