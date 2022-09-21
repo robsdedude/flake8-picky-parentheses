@@ -1,4 +1,3 @@
-import io
 import tokenize
 from typing import Set
 
@@ -24,10 +23,10 @@ def plugin(request):
             problems = plugin.run()
         else:
             plugin.check_brackets_position()
-            problems = [
+            problems = (
                 (line, col, msg, type(plugin))
                 for line, col, msg in plugin.problems
-            ]
+            )
         return {f"{line}:{col + 1} {msg}" for line, col, msg, _ in problems}
 
     return run
@@ -81,7 +80,7 @@ a == b):
 
 # BAD (use parentheses in both case of line continuation)
 def test_parentheses_if_with_trailing_space_only_with_first_new_line(plugin):
-    s = """if (  
+    s = "if (  " + """
 a == b):
     c + d
     """
@@ -653,10 +652,10 @@ def test_nested_new_lines_2(plugin):
     (
         (
             {"trust": 1}, ConfigurationError, "The config setting `trust`"
-        ), 
+        ),""" + " " + """
         (
             {"trust": True}, ConfigurationError, "The config setting `trust`"
-        ), 
+        ),""" + " " + """
         (
             {"trust": None}, ConfigurationError, "The config setting `trust`"
         ),
@@ -675,7 +674,7 @@ def test_nested_new_lines_3(plugin):
             {"trust": 1}, ConfigurationError, "The config setting `trust`"
         ) + (
             {"trust": True}, ConfigurationError, "The config setting `trust`"
-        ), 
+        ),""" + " " + """
         (
             {"trust": None}, ConfigurationError, "The config setting `trust`"
         ),
@@ -742,8 +741,5 @@ def test_method_chaining(plugin):
 
 
 def test_empty(plugin):
-    s = """
-    
-    
-"""
+    s = "\n    \n    \n"
     assert not plugin(s)

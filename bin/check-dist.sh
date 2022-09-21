@@ -14,4 +14,3 @@ else
     source "${ROOT}/bin/dist-functions"
     check_file "${DIST}/flake8-picky-parentheses-${VERSION}.tar.gz"
 fi
-

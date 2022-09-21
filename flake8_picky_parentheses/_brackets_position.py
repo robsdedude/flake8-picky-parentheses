@@ -1,11 +1,5 @@
 import tokenize
-from typing import (
-    Any,
-    Generator,
-    List,
-    Tuple,
-    Type,
-)
+import typing as t
 
 from ._meta import version
 from ._util import find_parens_coords
@@ -20,9 +14,9 @@ class PluginBracketsPosition:
         self.file_tokens = list(file_tokens)
         # all parentheses coordinates
         self.all_parens_coords = find_parens_coords(self.file_tokens)
-        self.problems: List[Tuple[int, int, str]] = []
+        self.problems: t.List[t.Tuple[int, int, str]] = []
 
-    def run(self) -> Generator[Tuple[int, int, str, Type[Any]], None, None]:
+    def run(self) -> t.Generator[t.Tuple[int, int, str, t.Type], None, None]:
         if not self.all_parens_coords:
             return
         self.check_brackets_position()

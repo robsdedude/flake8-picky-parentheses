@@ -4,7 +4,6 @@ from setuptools import setup
 
 from flake8_picky_parentheses import __version__ as version
 
-
 with open("README.md", "r") as fd:
     long_description = fd.read()
 
@@ -33,8 +32,8 @@ setup(
     packages=["flake8_picky_parentheses"],
     entry_points={
         "flake8.extension": [
-            'PAR0 = flake8_picky_parentheses:PluginRedundantParentheses',
-            'PAR1 = flake8_picky_parentheses:PluginBracketsPosition'
+            "PAR0 = flake8_picky_parentheses:PluginRedundantParentheses",
+            "PAR1 = flake8_picky_parentheses:PluginBracketsPosition"
         ],
     },
     classifiers=[

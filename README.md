@@ -113,7 +113,7 @@ a = [1, 2,
      3, 4]
 ```
 #### `PAR102`
-It means that closing bracket is on new line, but there is a indentation 
+It means that closing bracket is on new line, but there is a indentation
 mismatch. For example:
 ```python
 # BAD
@@ -150,7 +150,7 @@ yields the same AST (i.e., is semantically equivalent). If it does, a flake
 (lint error) is reported. However, there are two notable exceptions to this
 rule:
  1. Parentheses for tuple literals
- 2. A single pair or parentheses in expressions to highlight operator 
+ 2. A single pair or parentheses in expressions to highlight operator
     precedence. Even if these parentheses are redundant, they help to divide
     parts of expressions and show sequence of actions.
 

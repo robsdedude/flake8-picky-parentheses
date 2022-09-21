@@ -1,5 +1,4 @@
 import ast
-import io
 import sys
 import tokenize
 from typing import Set
@@ -27,10 +26,10 @@ def plugin(request):
             problems = plugin.run()
         else:
             plugin.check()
-            problems = [
+            problems = (
                 (line, col, msg, type(plugin))
                 for line, col, msg in plugin.problems
-            ]
+            )
         return {f"{line}:{col + 1} {msg}" for line, col, msg, _ in problems}
 
     return run
@@ -687,7 +686,7 @@ def test_parens_in_slice_5(plugin):
 def test_if_with_parens_in_comprehension(plugin, comprehension_type):
     s = f"""{comprehension_type[0]}
     x
-    for x in range(10) 
+    for x in range(10)""" + " " + f"""
     if (some_super_mega_looooooooooooooooooooooooooooooooooooong_thing
         or some_other_super_mega_looooooooooooooooooooooong_thing)
 {comprehension_type[1]}
@@ -707,7 +706,7 @@ def test_empty(plugin):
 def test_two_functions(plugin, beginning_ws):
     s = """def foo():
     pass
-    
+""" + "    " + """
 def bar():
     pass
 """
