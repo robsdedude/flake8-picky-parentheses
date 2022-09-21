@@ -686,7 +686,7 @@ def test_parens_in_slice_5(plugin):
 def test_if_with_parens_in_comprehension(plugin, comprehension_type):
     s = f"""{comprehension_type[0]}
     x
-    for x in range(10)""" + " " + """
+    for x in range(10)""" + " " + f"""
     if (some_super_mega_looooooooooooooooooooooooooooooooooooong_thing
         or some_other_super_mega_looooooooooooooooooooooong_thing)
 {comprehension_type[1]}
