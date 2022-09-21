@@ -2,7 +2,7 @@
 
 from setuptools import setup
 
-from flake8_picky_parentheses import __version__
+from flake8_picky_parentheses import __version__ as version
 
 
 with open("README.md", "r") as fd:
@@ -14,9 +14,6 @@ install_requires = [
 ]
 
 github_project_url = "https://github.com/robsdedude/flake8-picky-parentheses"
-
-version = __version__
-
 
 setup(
     name="flake8-picky-parentheses",
