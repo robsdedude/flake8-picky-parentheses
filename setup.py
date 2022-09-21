@@ -2,29 +2,38 @@
 
 from setuptools import setup
 
+from flake8_picky_parentheses import __version__ as version
+
 with open("README.md", "r") as fd:
     long_description = fd.read()
 
 
 install_requires = [
     "flake8>=3.7",
-    'importlib-metadata>=0.9;python_version<"3.8"',
 ]
 
+github_project_url = "https://github.com/robsdedude/flake8-picky-parentheses"
 
 setup(
-    name="flake8_picky_parentheses",
-    version="0.1.0",
-    description="flake8 plugin to detect redundant parenthesis",
+    name="flake8-picky-parentheses",
+    version=version,
+    description="flake8 plugin to nitpick about parenthesis, brackets, "
+                "and braces",
     long_description=long_description,
     long_description_content_type="text/markdown",
     author="Ivan Prychantovskyi, Rouven Bauer",
-    url="https://github.com/robsdedude/flake8-redundant-parentheses",
+    url=github_project_url,
+    project_urls={
+        "Issue Tracker": f"{github_project_url}/issues",
+        "Source Code": github_project_url,
+        "Changelog": f"{github_project_url}/blob/master/CHANGELOG.md",
+    },
+    download_url="https://pypi.python.org/pypi/flake8-picky-parentheses",
     packages=["flake8_picky_parentheses"],
     entry_points={
         "flake8.extension": [
             "PAR0 = flake8_picky_parentheses:PluginRedundantParentheses",
-            "BRA0 = flake8_picky_parentheses:PluginBracketsPosition"
+            "PAR1 = flake8_picky_parentheses:PluginBracketsPosition"
         ],
     },
     classifiers=[

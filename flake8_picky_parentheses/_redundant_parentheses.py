@@ -6,12 +6,7 @@ from textwrap import dedent
 import tokenize
 import typing as t
 
-try:
-    # Python 3.8+
-    from importlib import metadata
-except ImportError:
-    import importlib_metadata as metadata
-
+from ._meta import version
 from ._util import find_parens_coords
 
 if t.TYPE_CHECKING:
@@ -20,7 +15,7 @@ if t.TYPE_CHECKING:
 
 class PluginRedundantParentheses:
     name = __name__
-    version = metadata.version("flake8_picky_parentheses")
+    version = version
 
     def __init__(
         self,
