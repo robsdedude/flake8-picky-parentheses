@@ -652,10 +652,10 @@ def test_nested_new_lines_2(plugin):
     (
         (
             {"trust": 1}, ConfigurationError, "The config setting `trust`"
-        ),
+        ),""" + " " + """
         (
             {"trust": True}, ConfigurationError, "The config setting `trust`"
-        ),
+        ),""" + " " + """
         (
             {"trust": None}, ConfigurationError, "The config setting `trust`"
         ),
@@ -674,7 +674,7 @@ def test_nested_new_lines_3(plugin):
             {"trust": 1}, ConfigurationError, "The config setting `trust`"
         ) + (
             {"trust": True}, ConfigurationError, "The config setting `trust`"
-        ),
+        ),""" + " " + """
         (
             {"trust": None}, ConfigurationError, "The config setting `trust`"
         ),
@@ -741,8 +741,5 @@ def test_method_chaining(plugin):
 
 
 def test_empty(plugin):
-    s = """
-
-
-"""
+    s = "\n    \n    \n"
     assert not plugin(s)
