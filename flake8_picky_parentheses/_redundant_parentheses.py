@@ -81,12 +81,9 @@ class PluginRedundantParentheses:
             )
 
     def checked_parentheses(self, coords) -> bool:
-        if coords in self.exceptions or coords[0] in self.problems:
-            return True
-        return False
+        return coords in self.exceptions or coords[0] in self.problems
 
     def check(self) -> None:
-        breaker_ = None
         msg = "PAR001: Too many parentheses"
         # exceptions made for parentheses that are not strictly necessary
         # but help readability
@@ -127,39 +124,34 @@ class PluginRedundantParentheses:
                 for target in node.targets:
                     if not isinstance(target, ast.Tuple):
                         continue
-                    for elts in target.elts:
-                        tuple_coords = (target.lineno, target.col_offset)
-                        elts_coords = (elts.lineno, elts.col_offset)
-                        if tuple_coords > elts_coords:
+                    if not target.elts:
+                        continue
+                    elt = target.elts[0]
+                    elt_coords = (elt.lineno, elt.col_offset)
+                    matching_parens = None
+                    for coords in self.parens_coords:
+                        if self.checked_parentheses(coords):
                             continue
-                        for coords in self.parens_coords:
-                            if self.checked_parentheses(coords):
-                                continue
-                            if (coords[0][1] <= tuple_coords[1]
-                                    and coords[0][0] == tuple_coords[0]):
-                                self.exceptions.append(coords)
-                                breaker = 1
-                                break
-                        if not any(
-                                self.file_tokens_nn[token].start == elts_coords
-                                and self.file_tokens_nn[token - 1].string
-                                == "("
-                                for token in range(len(self.file_tokens_nn))
-                        ):
+                        if coords.open_ <= elt_coords <= coords.close:
+                            # no need to treat them again later
+                            self.exceptions.append(coords)
+                            matching_parens = coords
+                            breaker = 1
                             break
-                        for coords in self.all_parens_coords:
-                            if (tuple_coords == coords.open_
-                                    and coords.open_[0] != coords.close[0]
-                                    and coords not in self.parens_coords):
-                                breaker_ = 1
-                        if breaker_:
-                            break
-                        self.problems.append((
-                            node.lineno, node.col_offset,
-                            "PAR002: Dont use parentheses for "
-                            "unpacking"
-                        ))
+                    if not matching_parens:
+                        continue
+                    if not any(
+                        self.file_tokens_nn[token].start == elt_coords
+                        and self.file_tokens_nn[token - 1].string
+                        == "("
+                        for token in range(len(self.file_tokens_nn))
+                    ):
                         break
+                    self.problems.append((
+                        node.lineno, node.col_offset,
+                        "PAR002: Dont use parentheses for "
+                        "unpacking"
+                    ))
                     if breaker:
                         break
 

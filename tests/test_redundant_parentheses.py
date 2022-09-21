@@ -158,10 +158,18 @@ a, b\\
 
 
 # GOOD (unpacking with line break)
-def test_multiline_unpacking(plugin):
+def test_multiline_unpacking_implicit_tuple_literal(plugin):
     s = """(
 a, b
 ) = 1, 2"""
+    assert not plugin(s)
+
+
+# GOOD (unpacking with line break)
+def test_multiline_unpacking_explicit_tuple_literal(plugin):
+    s = """(
+a, b
+) = (1, 2)"""
     assert not plugin(s)
 
 
