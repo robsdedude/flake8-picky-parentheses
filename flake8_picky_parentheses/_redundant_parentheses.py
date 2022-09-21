@@ -86,6 +86,7 @@ class PluginRedundantParentheses:
         return False
 
     def check(self) -> None:
+        breaker_ = None
         msg = "PAR001: Too many parentheses"
         # exceptions made for parentheses that are not strictly necessary
         # but help readability
@@ -145,6 +146,13 @@ class PluginRedundantParentheses:
                                 == "("
                                 for token in range(len(self.file_tokens_nn))
                         ):
+                            break
+                        for coords in self.all_parens_coords:
+                            if (tuple_coords == coords.open_
+                                    and coords.open_[0] != coords.close[0]
+                                    and coords not in self.parens_coords):
+                                breaker_ = 1
+                        if breaker_:
                             break
                         self.problems.append((
                             node.lineno, node.col_offset,
