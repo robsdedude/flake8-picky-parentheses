@@ -27,7 +27,7 @@ repos:
           - flake8-bugbear
           - flake8-builtins
           - flake8-docstrings
-          # - flake8-picky-parentheses
+          - flake8-picky-parentheses
           - flake8-quotes
           - pep8-naming
   - repo: local
