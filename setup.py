@@ -25,8 +25,9 @@ setup(
     author="Ivan Prychantovskyi, Rouven Bauer",
     url=github_project_url,
     project_urls={
-        "Bug Tracker": f"{github_project_url}/issues",
+        "Issue Tracker": f"{github_project_url}/issues",
         "Source Code": github_project_url,
+        "Changelog": f"{github_project_url}/blob/master/CHANGELOG.md",
     },
     download_url="https://pypi.python.org/pypi/flake8-picky-parentheses",
     packages=["flake8_picky_parentheses"],
