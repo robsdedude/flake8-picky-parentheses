@@ -1,12 +1,6 @@
 import ast
 import tokenize
 from textwrap import dedent
-
-try:
-    # Python 3.8+
-    from importlib import metadata
-except ImportError:
-    import importlib_metadata as metadata
 import sys
 from typing import (
     Any,
@@ -16,12 +10,13 @@ from typing import (
     Type,
 )
 
+from ._meta import version
 from ._util import find_parens_coords
 
 
 class PluginRedundantParentheses:
     name = __name__
-    version = metadata.version("flake8_picky_parentheses")
+    version = version
 
     def __init__(self, tree: ast.AST, read_lines, file_tokens):
         self.source_code = "".join(read_lines())

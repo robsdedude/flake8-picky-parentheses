@@ -1,9 +1,4 @@
 import tokenize
-try:
-    # Python 3.8+
-    from importlib import metadata
-except ImportError:
-    import importlib_metadata as metadata
 from typing import (
     Any,
     Generator,
@@ -12,12 +7,13 @@ from typing import (
     Type,
 )
 
+from ._meta import version
 from ._util import find_parens_coords
 
 
 class PluginBracketsPosition:
     name = __name__
-    version = metadata.version("flake8_picky_parentheses")
+    version = version
 
     def __init__(self, tree, read_lines, file_tokens):
         self.source_code_lines = list(read_lines())
