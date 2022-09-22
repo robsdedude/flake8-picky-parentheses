@@ -31,10 +31,16 @@ class PluginBracketsPosition:
 
     def last_in_line(self, cords):
         line = self.source_code_lines[cords[0] - 1]
-        return all(
-            line[col] in (" ", "\t", "\n")
-            for col in range(cords[1] + 1, len(line))
-        )
+        for i in range(cords[1] + 1, len(line)):
+            if line[i] == " ":
+                continue
+            elif line[i] == "#":
+                return True
+            else:
+                return all(
+                    line[col] in (" ", "\t", "\n")
+                    for col in range(cords[1] + 1, len(line))
+                )
 
     def get_line_indentation(self, coords_open):
         line_tokens = (
