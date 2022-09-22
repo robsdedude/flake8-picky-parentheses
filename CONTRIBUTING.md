@@ -9,10 +9,12 @@ of this repository.
 
 ## Contribute Code
 As you may have noticed, this project is an opinionated, nitpicky linter
-plugin. Likewise opinionated and nitpicky are we when it comes to code style of
-contributions. Please make sure you install the pre-commit hooks that will then
-run linters and more before every commit. That way, you won't even be able to
-commit code that doesn't adhere to our code style.
+plugin.
+Likewise opinionated and nitpicky are we when it comes to code style of
+contributions.
+Please make sure you install the pre-commit hooks that will then run linters
+and more before every commit. That way, you won't even be able to commit code
+that doesn't adhere to our code style.
 
 Installation:
 ```bash
