@@ -1,6 +1,10 @@
 Changelog
 =========
 
+## 0.1.2
+***
+**Comment bug fix**
+
 ## 0.1.1
 ***
 **🔧 Fixes**

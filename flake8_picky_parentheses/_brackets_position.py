@@ -31,11 +31,9 @@ class PluginBracketsPosition:
 
     def last_in_line(self, cords):
         end = [tokenize.COMMENT, tokenize.NL, tokenize.NEWLINE]
-        for i in range(cords.token_indexes[0] + 1, len(self.file_tokens)):
-            if self.file_tokens[i].type in end:
-                return True
-            else:
-                return False
+        open_token_idx = cords.token_indexes[0]
+        next_token = self.file_tokens[open_token_idx + 1]
+        return next_token.type in end
 
     def get_line_indentation(self, coords_open):
         line_tokens = (
