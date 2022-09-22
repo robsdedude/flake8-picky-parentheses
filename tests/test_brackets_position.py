@@ -42,9 +42,18 @@ a == b
     assert not plugin(s)
 
 
-# BAD (use parentheses in both case of line continuation)
+# GOOD (use parentheses in both case of line continuation)
 def test_parentheses_in_if_only_with_second_new_line(plugin):
-    s = """if ( a == b
+    s = """if (a == b
+):
+    c + d
+    """
+    assert not plugin(s)
+
+
+# GOOD (use parentheses in both case of line continuation)
+def test_parentheses_in_if_only_with_second_new_line_and_comment(plugin):
+    s = """if (a == b  # cool comment!
 ):
     c + d
     """
@@ -54,6 +63,15 @@ def test_parentheses_in_if_only_with_second_new_line(plugin):
 # BAD (use parentheses in both case of line continuation)
 def test_parentheses_in_if_only_with_first_new_line(plugin):
     s = """if (
+a == b):
+    c + d
+    """
+    assert plugin(s)
+
+
+# BAD (use parentheses in both case of line continuation)
+def test_parentheses_in_if_only_with_first_new_line_and_comment(plugin):
+    s = """if (  # cool comment!
 a == b):
     c + d
     """
@@ -107,6 +125,13 @@ def test_list_with_enters_line(plugin):
 # BAD (opening bracket is last, but closing is not on new line)
 def test_list_with_only_one_enter_line(plugin):
     s = """a = [
+1, 2, 3]"""
+    assert plugin(s)
+
+
+# BAD (opening bracket is last, but closing is not on new line)
+def test_list_with_only_one_enter_line_and_comment(plugin):
+    s = """a = [  # cool comment!
 1, 2, 3]"""
     assert plugin(s)
 
@@ -358,9 +383,24 @@ def test_dict_with_enters_line(plugin):
     assert not plugin(s)
 
 
+# GOOD
+def test_dict_with_enters_line_and_comment(plugin):
+    s = """a = {  # cool comment!
+1, 2, 3
+}"""
+    assert not plugin(s)
+
+
 # BAD (opening bracket is last, but closing is not on new line)
 def test_dict_with_only_one_enter_line(plugin):
     s = """a = {
+1, 2, 3}"""
+    assert plugin(s)
+
+
+# BAD (opening bracket is last, but closing is not on new line)
+def test_dict_with_only_one_enter_line_and_comment(plugin):
+    s = """a = {  # cool comment!
 1, 2, 3}"""
     assert plugin(s)
 
@@ -448,6 +488,13 @@ def test_tuple_with_enters_line(plugin):
 # BAD (opening bracket is last, but closing is not on new line)
 def test_tuple_with_only_one_enter_line(plugin):
     s = """a = (
+1, 2, 3)"""
+    assert plugin(s)
+
+
+# BAD (opening bracket is last, but closing is not on new line)
+def test_tuple_with_only_one_enter_line_and_comment(plugin):
+    s = """a = (  # cool comment!
 1, 2, 3)"""
     assert plugin(s)
 
