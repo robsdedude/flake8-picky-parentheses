@@ -30,11 +30,10 @@ class PluginBracketsPosition:
         )
 
     def last_in_line(self, cords):
-        line = self.source_code_lines[cords[0] - 1]
-        return all(
-            line[col] in (" ", "\t", "\n")
-            for col in range(cords[1] + 1, len(line))
-        )
+        end = [tokenize.COMMENT, tokenize.NL, tokenize.NEWLINE]
+        open_token_idx = cords.token_indexes[0]
+        next_token = self.file_tokens[open_token_idx + 1]
+        return next_token.type in end
 
     def get_line_indentation(self, coords_open):
         line_tokens = (
@@ -55,7 +54,7 @@ class PluginBracketsPosition:
             if coords_open[0] == coords_close[0]:
                 # opening and closing brackets in the same line
                 continue
-            if not self.last_in_line(coords_open):
+            if not self.last_in_line(coords):
                 continue
             if not self.first_in_line(coords_close):
                 self.problems.append((
