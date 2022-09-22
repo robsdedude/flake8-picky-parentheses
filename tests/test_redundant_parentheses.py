@@ -157,6 +157,22 @@ a, b\\
     assert len(plugin(s)) == 1
 
 
+# GOOD (unpacking with line break)
+def test_multiline_unpacking_implicit_tuple_literal(plugin):
+    s = """(
+a, b
+) = 1, 2"""
+    assert not plugin(s)
+
+
+# GOOD (unpacking with line break)
+def test_multiline_unpacking_explicit_tuple_literal(plugin):
+    s = """(
+a, b
+) = (1, 2)"""
+    assert not plugin(s)
+
+
 # GOOD (parentheses for tuple literal are optional)
 def test_tuple_literal_unpacking_in_if(plugin):
     s = """if foo:
