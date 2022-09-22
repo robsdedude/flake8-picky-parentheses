@@ -2,8 +2,8 @@ Picky Parentheses
 =================
 
 Picky Parentheses is a [flake8](https://github.com/pycqa/flake8) plugin that
-nitpicks all things parentheses, brackets and braces. The plugin has two
-components:
+nitpicks all things parentheses, brackets and braces.
+The plugin has two components:
  1. A checker that warns about redundant parentheses (with some exceptions).
  2. A checker for parentheses, brackets, and braces alignment.
     This component is very opinionated but has its own error codes so you can
@@ -146,13 +146,14 @@ a = [
 
 The redundant parentheses checker uses Python's `tokenize` and `ast` module to
 try to remove each pair of parentheses and see if the code still compiles and
-yields the same AST (i.e., is semantically equivalent). If it does, a flake
-(lint error) is reported. However, there are two notable exceptions to this
-rule:
+yields the same AST (i.e., is semantically equivalent).
+If it does, a flake (lint error) is reported. However, there are two notable
+exceptions to this rule:
  1. Parentheses for tuple literals
  2. A single pair or parentheses in expressions to highlight operator
-    precedence. Even if these parentheses are redundant, they help to divide
-    parts of expressions and show sequence of actions.
+    precedence.
+    Even if these parentheses are redundant, they help to divide parts of
+    expressions and show sequence of actions.
 
 Exception type 1:
 ```python
