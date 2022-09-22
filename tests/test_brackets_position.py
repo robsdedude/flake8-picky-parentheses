@@ -78,6 +78,15 @@ a == b):
     assert plugin(s)
 
 
+# GOOD
+def test_parentheses_in_if_only_with_first_new_line_and_tab_comment(plugin):
+    s = """a = ( \t  # some comment
+1, 2
+)
+    """
+    assert not plugin(s)
+
+
 # BAD (don't put the if body on the same line, m'kay?)
 def test_if_body_on_new_line_after_multi_line_condition(plugin):
     s = """if (
