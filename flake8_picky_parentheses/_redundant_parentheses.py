@@ -268,7 +268,7 @@ def delete_tabs(line, line_num, prev_moved):
             line[lines] = line[lines][1:]
             changed = moved_counter
     if changed:
-        return line, len(line), moved_counter
+        return line, len(line), moved_counter + 1
     else:
         return line, 0, 0
 
