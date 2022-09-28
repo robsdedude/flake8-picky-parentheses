@@ -871,7 +871,7 @@ def test_two_methods_and_function_walk_into_a_bar(plugin, mistake_pos):
 
 
 @pytest.mark.parametrize("mistake_pos", range(4))
-def test_(plugin, mistake_pos):
+def test_methods_and_if(plugin, mistake_pos):
     s = """class Foo:
     def bar(self):
         %s
