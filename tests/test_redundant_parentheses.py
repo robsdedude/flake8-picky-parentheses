@@ -813,16 +813,10 @@ finally:
 @pytest.mark.parametrize(
     ("mistake_pos", "elif_count", "else_"),
     (
-        *(
-            (pos, elif_count, True)
-            for elif_count in range(3)
-            for pos in range(3 + elif_count)
-        ),
-        *(
-            (pos, elif_count, False)
-            for elif_count in range(1, 3)
-            for pos in range(3 + elif_count)
-        ),
+        (pos, elif_count, False)
+        for elif_count in range(1, 3)
+        for else_ in (True, False)
+        for pos in range(2 - else_ + elif_count)
     )
 )
 def test_if_elif_else(plugin, mistake_pos, elif_count, else_):
