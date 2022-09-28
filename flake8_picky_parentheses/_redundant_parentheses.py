@@ -262,7 +262,17 @@ def delete_tabs(line, line_num, prev_moved):
     else:
         moved_counter = prev_moved
     for delete in range(0, moved_counter):
+        counter = None
         for lines in range(line_num, len(line)):
+            if "'''" in line[lines] or counter:
+                if not counter:
+                    counter = 1
+                    continue
+                if "'''" in line[lines]:
+                    counter = None
+                    continue
+                continue
+
             if not line[lines].startswith(" "):
                 moved_counter = delete + 1
                 break
