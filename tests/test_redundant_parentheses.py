@@ -885,6 +885,6 @@ def test_methods_and_if(plugin, mistake_pos):
 """
     substitutes = ["a = 1"] * 2
     if mistake_pos:
-        substitutes[mistake_pos - 1] = "a = (1)"
+        substitutes[mistake_pos - 2] = "a = (1)"
     s = s % tuple(substitutes)
     assert len(plugin(s)) >= bool(mistake_pos)
