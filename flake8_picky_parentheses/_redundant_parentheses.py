@@ -264,12 +264,12 @@ def delete_tabs(line, line_num, prev_moved):
     for delete in range(0, moved_counter):
         for lines in range(line_num, len(line)):
             if not line[lines].startswith(" "):
-                moved_counter = delete
+                moved_counter = delete + 1
                 break
             line[lines] = line[lines][1:]
             changed = moved_counter
     if changed:
-        return line, len(line), moved_counter + 1
+        return line, len(line), moved_counter
     else:
         return line, 0, 0
 
