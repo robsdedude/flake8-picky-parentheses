@@ -847,3 +847,24 @@ def test_two_methods(plugin, mistake_pos):
         substitutes[mistake_pos - 1] = "a = (1)"
     s = s % tuple(substitutes)
     assert len(plugin(s)) == bool(mistake_pos)
+
+
+@pytest.mark.parametrize("mistake_pos", range(2))
+def test_two_methods_and_function_walk_into_a_bar(plugin, mistake_pos):
+    s = """class Foo:
+    def bar(self):
+        ...
+
+    def bar(self):
+        '''
+        It's a docstring.
+        '''
+        ...
+
+%s
+"""
+    substitutes = ["foo()"]
+    if mistake_pos:
+        substitutes[mistake_pos - 1] = "foo((1))"
+    s = s % tuple(substitutes)
+    assert len(plugin(s)) == bool(mistake_pos)
