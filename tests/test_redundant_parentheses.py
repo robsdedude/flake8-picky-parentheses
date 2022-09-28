@@ -830,3 +830,20 @@ def test_if_elif_else(plugin, mistake_pos, elif_count, else_):
         substitutes[mistake_pos - 1] = "a = (1)"
     s = s % tuple(substitutes)
     assert len(plugin(s)) == bool(mistake_pos)
+
+
+@pytest.mark.parametrize("mistake_pos", range(4))
+def test_two_methods(plugin, mistake_pos):
+    s = """class Foo:
+    def bar(self):
+        %s
+
+    def baz(self):
+        %s
+        %s
+"""
+    substitutes = ["a = 1"] * 3
+    if mistake_pos:
+        substitutes[mistake_pos - 1] = "a = (1)"
+    s = s % tuple(substitutes)
+    assert len(plugin(s)) == bool(mistake_pos)
