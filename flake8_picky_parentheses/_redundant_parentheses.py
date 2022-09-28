@@ -229,7 +229,7 @@ def separate_logic_lines(source_code, start_tree, all_logic_lines):
             code_to_check.append(source_code[counter])
         for line_num in range(len(code_to_check)):
             if (line_num < checked_lines or code_to_check[line_num] == ""
-               or code_to_check[line_num].isspace()):
+                    or code_to_check[line_num].isspace()):
                 continue
             code_to_check, checked_lines, prev_moved = delete_tabs(
                 code_to_check, line_num, prev_moved
