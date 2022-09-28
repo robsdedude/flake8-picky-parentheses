@@ -208,7 +208,7 @@ def build_tree(code_to_check, start_trees):
         end_offset = 64 if isinstance(node, ast.ClassDef) else 43
     else:
         start_offset = 13
-        end_offset = 36 if isinstance(node, ast.ClassDef) else 17
+        end_offset = 36 if isinstance(node, ast.ClassDef) else 16
     end_offset = len(new_dump_tree) - end_offset
     tree_to_check = new_dump_tree[start_offset:][:end_offset]
 
