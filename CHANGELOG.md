@@ -1,6 +1,14 @@
 Changelog
 =========
 
+## 0.1.2
+***
+**🔧 Fixes**
+* Fix false positives caused by detecting logical lines incorrectly
+  ([#20](https://github.com/robsdedude/flake8-picky-parentheses/pull/20)).
+* Fix false positives in classes in Python 3.7
+  ([#20](https://github.com/robsdedude/flake8-picky-parentheses/pull/20)).
+
 ## 0.1.1
 ***
 **🔧 Fixes**
@@ -10,7 +18,6 @@ Changelog
 * Fix not complaining about misaligned parentheses, brackets, braces when the
   opening line ends on a comment
   ([#18](https://github.com/robsdedude/flake8-picky-parentheses/pull/18)).
-* Fix moved_counter was on 1 less than it should be.
 
 ## 0.1.0
 ***
