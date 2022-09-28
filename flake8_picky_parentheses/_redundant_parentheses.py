@@ -45,11 +45,10 @@ class PluginRedundantParentheses:
         self.parens_coords = [
             coords
             for coords in self.all_parens_coords
-            if tree_without_parens_unchanged(self.logic_lines_trees,
-                                             coords,
-                                             self.logic_lines,
-                                             self.logic_lines_num,
-                                             self.logic_line_move)
+            if tree_without_parens_unchanged(
+                self.logic_lines_trees, coords, self.logic_lines,
+                self.logic_lines_num, self.logic_line_move
+            )
         ]
         self.exceptions: t.List[ParensCords] = []
         self.problems: t.List[t.Tuple[int, int, str]] = []
@@ -209,7 +208,7 @@ def build_tree(code_to_check, start_trees):
         end_offset = 64 if isinstance(node, ast.ClassDef) else 43
     else:
         start_offset = 13
-        end_offset = 36 if isinstance(node, ast.ClassDef) else 17
+        end_offset = 36 if isinstance(node, ast.ClassDef) else 16
     end_offset = len(new_dump_tree) - end_offset
     tree_to_check = new_dump_tree[start_offset:][:end_offset]
 
@@ -229,7 +228,8 @@ def separate_logic_lines(source_code, start_tree, all_logic_lines):
         for counter in range(logic_line[0], logic_line[1]):
             code_to_check.append(source_code[counter])
         for line_num in range(len(code_to_check)):
-            if line_num < checked_lines or code_to_check[line_num] == "":
+            if (line_num < checked_lines
+                    or code_to_check[line_num].strip() == ""):
                 continue
             code_to_check, checked_lines, prev_moved = delete_tabs(
                 code_to_check, line_num, prev_moved
@@ -269,7 +269,7 @@ def delete_tabs(line, line_num, prev_moved):
             line[lines] = line[lines][1:]
             changed = moved_counter
     if changed:
-        return line, len(line), moved_counter
+        return line, len(line), moved_counter + 1
     else:
         return line, 0, 0
 
@@ -285,27 +285,29 @@ def tree_without_parens_unchanged(logic_line_trees, parens_coords, logic_lines,
 
     move_lines = 0
 
-    for lines in range(len(logic_lines)):
-        if parens_coords[3][0] > logic_lines_num[lines]:
-            continue
-        if logic_lines_num[lines - 1] <= parens_coords[3][0]:
-            move_lines = logic_lines_num[lines - 1]
-        split_line = logic_lines[lines].split("\n")
-        idx_open_line = open_[0] - move_lines - 1
-        split_line[idx_open_line] = (
-            split_line[idx_open_line][:open_[1] - logic_line_move[lines]]
-            + replacement
-            + split_line[idx_open_line][space - logic_line_move[lines]:]
-        )
-        shift = 0
-        if open_[0] == close[0]:
-            shift -= (space - open_[1]) - len(replacement)
-        idx_close_line = close[0] - move_lines - 1
-        shifted_close_col = close[1] + shift - logic_line_move[lines]
-        split_line[idx_close_line] = (
-            split_line[idx_close_line][:shifted_close_col]
-            + " "
-            + split_line[idx_close_line][shifted_close_col + 1:]
-        )
-        patched_line = "\n".join(split_line)
-        return build_tree(patched_line, logic_line_trees)
+    line_num_idx = next(
+        idx for idx in range(len(logic_lines))
+        if parens_coords[3][0] <= logic_lines_num[idx]
+    )
+
+    if logic_lines_num[line_num_idx - 1] <= parens_coords[3][0]:
+        move_lines = logic_lines_num[line_num_idx - 1]
+    split_line = logic_lines[line_num_idx].split("\n")
+    idx_open_line = open_[0] - move_lines - 1
+    split_line[idx_open_line] = (
+        split_line[idx_open_line][:open_[1] - logic_line_move[line_num_idx]]
+        + replacement
+        + split_line[idx_open_line][space - logic_line_move[line_num_idx]:]
+    )
+    shift = 0
+    if open_[0] == close[0]:
+        shift -= (space - open_[1]) - len(replacement)
+    idx_close_line = close[0] - move_lines - 1
+    shifted_close_col = close[1] + shift - logic_line_move[line_num_idx]
+    split_line[idx_close_line] = (
+        split_line[idx_close_line][:shifted_close_col]
+        + " "
+        + split_line[idx_close_line][shifted_close_col + 1:]
+    )
+    patched_line = "\n".join(split_line)
+    return build_tree(patched_line, logic_line_trees)

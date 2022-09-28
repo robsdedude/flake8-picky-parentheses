@@ -729,3 +729,104 @@ def bar():
     if beginning_ws:
         s = "\n" + s
     assert not plugin(s)
+
+
+# GOOD
+def test_function_call_with_empty_line_in_method(plugin):
+    s = """class Foo:
+    def __init__(self):
+        ...
+
+    def build_driver_and_backend(self):
+        foo(
+            bar
+
+        )
+"""
+    assert not plugin(s)
+
+
+@pytest.mark.parametrize("mistake_pos", (0, 1, 2))
+def test_try_except(plugin, mistake_pos):
+    s = """try:
+    %s
+except:
+    %s
+"""
+    substitutes = ["a = 1"] * 2
+    if mistake_pos:
+        substitutes[mistake_pos - 1] = "a = (1)"
+    s = s % tuple(substitutes)
+    assert len(plugin(s)) == bool(mistake_pos)
+
+
+@pytest.mark.parametrize("mistake_pos", (0, 1, 2, 3))
+def test_try_except_finally(plugin, mistake_pos):
+    s = """try:
+    %s
+except:
+    %s
+finally:
+    %s
+"""
+    substitutes = ["a = 1"] * 3
+    if mistake_pos:
+        substitutes[mistake_pos - 1] = "a = (1)"
+    s = s % tuple(substitutes)
+    assert len(plugin(s)) == bool(mistake_pos)
+
+
+@pytest.mark.parametrize("mistake_pos", (0, 1, 2, 3))
+def test_try_except_else(plugin, mistake_pos):
+    s = """try:
+    %s
+except:
+    %s
+else:
+    %s
+"""
+    substitutes = ["a = 1"] * 3
+    if mistake_pos:
+        substitutes[mistake_pos - 1] = "a = (1)"
+    s = s % tuple(substitutes)
+    assert len(plugin(s)) == bool(mistake_pos)
+
+
+@pytest.mark.parametrize("mistake_pos", (0, 1, 2, 3))
+def test_try_except_else_finally(plugin, mistake_pos):
+    s = """try:
+    %s
+except:
+    %s
+else:
+    %s
+finally:
+    %s
+"""
+    substitutes = ["a = 1"] * 4
+    if mistake_pos:
+        substitutes[mistake_pos - 1] = "a = (1)"
+    s = s % tuple(substitutes)
+    assert len(plugin(s)) == bool(mistake_pos)
+
+
+@pytest.mark.parametrize(
+    ("mistake_pos", "elif_count", "else_"),
+    (
+        (pos, elif_count, False)
+        for elif_count in range(1, 3)
+        for else_ in (True, False)
+        for pos in range(2 - else_ + elif_count)
+    )
+)
+def test_if_elif_else(plugin, mistake_pos, elif_count, else_):
+    s = "if foo:\n    %s\n"
+    for _ in range(elif_count):
+        s += "elif bar:\n    %s\n"
+    if else_:
+        s += "else:\n    %s\n"
+    substitutes = ["a = 1"] * (1 + elif_count + else_)
+    if mistake_pos:
+        substitutes[mistake_pos - 1] = "a = (1)"
+    s = s % tuple(substitutes)
+    assert len(plugin(s)) == bool(mistake_pos)

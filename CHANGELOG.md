@@ -1,6 +1,14 @@
 Changelog
 =========
 
+## 0.1.2
+***
+**🔧 Fixes**
+* Fix false positives caused by detecting logical lines incorrectly
+  ([#20](https://github.com/robsdedude/flake8-picky-parentheses/pull/20)).
+* Fix false positives in classes in Python 3.7
+  ([#20](https://github.com/robsdedude/flake8-picky-parentheses/pull/20)).
+
 ## 0.1.1
 ***
 **🔧 Fixes**
