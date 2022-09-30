@@ -1,4 +1,3 @@
 -e .
 pytest>=7.1.2
 mypy
-flake8>=3.7

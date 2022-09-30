@@ -10,15 +10,6 @@ from flake8_picky_parentheses import PluginRedundantParentheses
 
 
 @pytest.fixture
-def fake_namespace():
-    class Options:
-        stdin_display_name = None
-        disable_noqa = False
-
-    return Options()
-
-
-@pytest.fixture
 def plugin():
     def run(s: str) -> Set[str]:
         lines = s.splitlines(keepends=True)
@@ -980,7 +971,7 @@ def test_single_line_keyword_in_call(plugin):
 
 
 def test_multi_line_keyword_in_def(plugin):
-    s = f"""\
+    s = """\
 def foo(a=(1
            + 2)):
     bar
@@ -989,7 +980,7 @@ def foo(a=(1
 
 
 def test_multi_line_keyword_with_annotation_in_def(plugin):
-    s = f"""\
+    s = """\
 def foo(a: int = (1
                   + 2)):
     bar
