@@ -3,7 +3,6 @@ import sys
 import tokenize
 from typing import Set
 
-from flake8.main import application
 import pytest
 
 from flake8_picky_parentheses import PluginRedundantParentheses
@@ -18,29 +17,16 @@ def fake_namespace():
     return Options()
 
 
-# @pytest.fixture(params=[True, False])
-@pytest.fixture(params=[True])
-def plugin(request):
-    use_run = request.param
-
+@pytest.fixture
+def plugin():
     def run(s: str) -> Set[str]:
         lines = s.splitlines(keepends=True)
-
-        def read_lines():
-            return lines
 
         line_iter = iter(lines)
         file_tokens = list(tokenize.generate_tokens(lambda: next(line_iter)))
         tree = ast.parse(s)
-        plugin = PluginRedundantParentheses(tree, file_tokens, lines)
-        if use_run:
-            problems = plugin.run()
-        else:
-            plugin.check()
-            problems = (
-                (line, col, msg, type(plugin))
-                for line, col, msg in plugin.problems
-            )
+        plugin_ = PluginRedundantParentheses(tree, file_tokens, lines)
+        problems = plugin_.run()
         return {f"{line}:{col + 1} {msg}" for line, col, msg, _ in problems}
 
     return run
