@@ -1005,6 +1005,5 @@ def foo(a{type_annotation}=(1 + 2)):
     if path.is_file()
 ))
 def test_run_on_ourself(plugin, path):
-    with path:
-        s = path.read_text()
+    s = path.read_text()
     assert not plugin(s)

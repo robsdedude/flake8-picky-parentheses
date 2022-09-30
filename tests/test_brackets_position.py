@@ -803,9 +803,12 @@ def test_empty(plugin):
 
 
 @pytest.mark.parametrize("path", (
-    (Path(__file__).parent / ".." / "flake8_picky_parentheses").iterdir()
+    path
+    for path in (
+        Path(__file__).parent / ".." / "flake8_picky_parentheses"
+    ).iterdir()
+    if path.is_file()
 ))
 def test_run_on_ourself(plugin, path):
-    with path:
-        s = path.read_text()
+    s = path.read_text()
     assert not plugin(s)
