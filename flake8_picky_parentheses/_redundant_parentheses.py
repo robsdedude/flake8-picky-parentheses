@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 from dataclasses import dataclass
+import sys
 import tokenize
 import typing as t
 
@@ -272,7 +273,7 @@ class PluginRedundantParentheses:
         nodes_idx = 0
         last_exception_node = None
         rewrite_buffer = None
-        for parens_coord_idx, parens_coord in enumerate(sorted_parens_coords):
+        for _, parens_coord in enumerate(sorted_parens_coords):
             node, pos, end, parents = nodes[nodes_idx]
             while not cls._node_in_parens(parens_coord, pos, end):
                 nodes_idx += 1
@@ -339,16 +340,21 @@ class PluginRedundantParentheses:
     @classmethod
     def _tuple_exceptions(cls, sorted_parens_coords, sorted_nodes, tokens):
         # Tuples need extra care, because the parentheses are not included
-        # in the ast position (unless necessary)
+        # in the ast position (unless necessary) in Python 3.7
+        # BUT, they are included in Python 3.8+
         tokens = [token for token in tokens
                   if token.type not in IGNORED_TYPES_FOR_PARENS]
         tokens_idx = 0
         parens_coord_idx = 0
-        for node, pos, end, parents in sorted_nodes:
+        for node, pos, _, _ in sorted_nodes:
             if not isinstance(node, ast.Tuple):
                 continue
-            while tokens[tokens_idx].start < pos:
-                tokens_idx += 1
+            if sys.version_info >= (3, 8):
+                while tokens[tokens_idx].start <= pos:
+                    tokens_idx += 1
+            else:
+                while tokens[tokens_idx].start < pos:
+                    tokens_idx += 1
             if not tokens_idx:
                 continue
             prev_token_pos = tokens[tokens_idx - 1].start
@@ -366,7 +372,7 @@ class PluginRedundantParentheses:
         pos = cls._node_pos(node, None)
         end = (0, 0) if pos is None else pos
         child_parents = (node, *parents)
-        for field, value in ast.iter_fields(node):
+        for _, value in ast.iter_fields(node):
             if isinstance(value, list):
                 for item in value:
                     if isinstance(item, ast.AST):
