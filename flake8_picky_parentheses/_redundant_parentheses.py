@@ -454,7 +454,14 @@ class PluginRedundantParentheses:
                         "PAR002: Dont use parentheses for unpacking"
                     )
                     last_exception_node = node
-            # TODO: comprehension.ifse
+            elif (
+                parents
+                and isinstance(parents[0], ast.comprehension)
+                and node in parents[0].ifs
+                and parens_coord.open_[0] != parens_coord.close[0]
+            ):
+                rewrite_buffer = ProblemRewrite(parens_coord.open_, None)
+                last_exception_node = node
             # Make sure not to treat the same node again.
             # Max. one exception per node.
             # nodes_idx += 1

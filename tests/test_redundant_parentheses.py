@@ -769,11 +769,12 @@ def test_parens_in_slice_8(plugin):
     assert plugin(s)
 
 
-# GOOD (redundant in comprehension, but help readability)
+# GOOD (redundant in comprehension, but help readability of multi-line if)
 @pytest.mark.parametrize("comprehension_type", (
     "()", "[]", "{}",
 ))
-def test_if_with_parens_in_comprehension(plugin, comprehension_type):
+def test_multi_line_if_with_parens_in_comprehension(plugin,
+                                                    comprehension_type):
     s = f"""{comprehension_type[0]}
     x
     for x in range(10)""" + " " + f"""
@@ -782,6 +783,21 @@ def test_if_with_parens_in_comprehension(plugin, comprehension_type):
 {comprehension_type[1]}
 """
     assert not plugin(s)
+
+
+# BAD (redundant in comprehension and don't help readability of single-line if)
+@pytest.mark.parametrize("comprehension_type", (
+    "()", "[]", "{}",
+))
+def test_single_line_if_with_parens_in_comprehension(plugin,
+                                                     comprehension_type):
+    s = f"""{comprehension_type[0]}
+    x
+    for x in range(10)""" + " " + f"""
+    if (foobar)
+{comprehension_type[1]}
+"""
+    assert len(plugin(s)) == 1
 
 
 def test_empty(plugin):
