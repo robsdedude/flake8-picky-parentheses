@@ -205,10 +205,7 @@ class PluginRedundantParentheses:
     @classmethod
     def _check_logical_line(cls, logical_line):
         parens_coords = find_parens_coords(logical_line.tokens)
-        try:
-            tree = ast.parse(logical_line.line)
-        except SyntaxError:
-            raise
+        tree = ast.parse(logical_line.line)
         for parens_coord in parens_coords:
             if not cls._parens_check_optional(logical_line, tree,
                                               parens_coord):
