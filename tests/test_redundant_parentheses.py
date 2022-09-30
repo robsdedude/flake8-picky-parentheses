@@ -3,12 +3,23 @@ import sys
 import tokenize
 from typing import Set
 
+from flake8.main import application
 import pytest
 
 from flake8_picky_parentheses import PluginRedundantParentheses
 
 
-@pytest.fixture(params=[True, False])
+@pytest.fixture
+def fake_namespace():
+    class Options:
+        stdin_display_name = None
+        disable_noqa = False
+
+    return Options()
+
+
+# @pytest.fixture(params=[True, False])
+@pytest.fixture(params=[True])
 def plugin(request):
     use_run = request.param
 
@@ -21,7 +32,7 @@ def plugin(request):
         line_iter = iter(lines)
         file_tokens = list(tokenize.generate_tokens(lambda: next(line_iter)))
         tree = ast.parse(s)
-        plugin = PluginRedundantParentheses(tree, read_lines, file_tokens)
+        plugin = PluginRedundantParentheses(tree, file_tokens, lines)
         if use_run:
             problems = plugin.run()
         else:
@@ -81,6 +92,13 @@ def test_tuple_literal_4(plugin):
     assert next(iter(res)).startswith("1:1 ")
 
 
+# GOOD (parens for tuple literal are optional)
+def test_parens_for_tuple_literal(plugin):
+    s = """(a,)  # GOOD
+    """
+    assert not plugin(s)
+
+
 def test_mixed_with_tuple_literal_5(plugin):
     s = """(1 + 2)  # BAD
 (a,)  # GOOD
@@ -100,10 +118,18 @@ def test_mixed_with_tuple_literal_6(plugin):
 
 
 # GOOD (use parentheses for tuple literal)
-def test_nested_tuple_literal(plugin):
+def test_nested_tuple_literal_1(plugin):
     s = """a = ("a", ("b", "c"))
     """
     assert not plugin(s)
+
+
+# BAD (redundant parentheses around the whole expression)
+def test_nested_tuple_literal_2(plugin):
+    s = """(a + (1, 2))"""
+    res = plugin(s)
+    assert len(res) == 1
+    assert next(iter(res)).startswith("1:1 ")
 
 
 # BAD (one pair of parentheses for tuple literal is enough)
@@ -141,12 +167,18 @@ def test_tuple_literal_optional_2(plugin):
 
 
 # GOOD (parentheses for tuple literal are optional)
+def test_tuple_literal_optional_3(plugin):
+    s = """"a", (1, 2)"""
+    assert not plugin(s)
+
+
+# GOOD (parentheses for tuple literal are optional)
 def test_tuple_literal_unpacking(plugin):
     s = """a, b = "a", "b"
 c = ((d + e))
     """
     res = plugin(s)
-    assert len(res) == 2
+    assert len(res) == 1
 
 
 # BAD (redundant parentheses for unpacking)
@@ -273,6 +305,11 @@ def test_unpacking(plugin, ws1, ws2, ws3, ws4):
     assert len(plugin(s)) == 1
 
 
+def test_simple_unpacking(plugin):
+    s = """(a,) = ["a"]"""
+    assert len(plugin(s)) == 1
+
+
 # BAD (don't use parentheses for unpacking, even with leading white space)
 @pytest.mark.parametrize("ws", _ws_generator())
 def test_unpacking_with_white_space(plugin, ws):
@@ -342,14 +379,14 @@ def test_function_call(plugin):
 def test_function_call_redundant_parens_1(plugin):
     s = """foo(("a"))
     """
-    assert len(plugin(s)) == 2
+    assert len(plugin(s)) == 1
 
 
 # BAD (function call with extra parentheses around expression)
 def test_function_call_redundant_parens_2(plugin):
     s = """foo((1 + 2))
     """
-    assert len(plugin(s)) == 2
+    assert len(plugin(s)) == 1
 
 
 # BAD
@@ -583,22 +620,38 @@ def _make_multi_line_extra_parens_2(s):
     return f"foo = (\n    ({s[6:]})\n)"
 
 
+def _make_multi_line_extra_parens_3(s):
+    assert s.startswith("foo = ")
+    return f"foo = (\n(\n{s[6:]}\n)\n)"
+
+
 MULTI_LINE_ALTERATION = (
     # (function, makes it bad)
     (_id, 0),
     (_make_multi_line, 0),
-    (_make_multi_line_extra_parens_1, 2),
+    (_make_multi_line_extra_parens_1, 1),
     (_make_multi_line_extra_parens_2, 1),
+    (_make_multi_line_extra_parens_3, 1),
 )
 
 
 @pytest.mark.parametrize("op", UNARY_OPS)
 @pytest.mark.parametrize("alteration", MULTI_LINE_ALTERATION)
-def test_superfluous_parentheses_after_mono_op(plugin, op, alteration):
+def test_superfluous_parentheses_after_unary_op(plugin, op, alteration):
     alteration_func, introduced_flakes = alteration
     s = f"foo = {op} (bar) \n"
     s = alteration_func(s)
     assert len(plugin(s)) == 1 + introduced_flakes
+
+
+def test_double_line_continuation(plugin):
+    s = """(
+(
+1
+)
+)
+"""
+    assert len(plugin(s)) == 1
 
 
 @pytest.mark.parametrize("op", UNARY_OPS)
@@ -621,7 +674,7 @@ def test_superfluous_but_helping_parentheses_after_mono_op(
 @pytest.mark.parametrize("alteration", MULTI_LINE_ALTERATION)
 def test_superfluous_parentheses_around_bin_op(plugin, op, alteration):
     alteration_func, introduced_flakes = alteration
-    s = f"foo = (foo {op} bar) \n"
+    s = f"foo = {{a: (foo {op} bar)}} \n"
     s = alteration_func(s)
     assert len(plugin(s)) == 1 + introduced_flakes
 
@@ -693,6 +746,27 @@ def test_parens_in_slice_5(plugin):
     s = """foo[(0):i]
 """
     assert len(plugin(s)) == 1
+
+
+# GOOD (redundant in slice, but help readability)
+def test_parens_in_slice_6(plugin):
+    s = """foo[i: (i + 1) ]
+"""
+    assert not plugin(s)
+
+
+# GOOD (redundant in slice, but help readability)
+def test_parens_in_slice_7(plugin):
+    s = """foo[i:( i + 1 )]
+"""
+    assert not plugin(s)
+
+
+# BAD (on pair would've been enough)
+def test_parens_in_slice_8(plugin):
+    s = """foo[((i - 1)):i]
+"""
+    assert plugin(s)
 
 
 # GOOD (redundant in comprehension, but help readability)
@@ -830,3 +904,14 @@ def test_if_elif_else(plugin, mistake_pos, elif_count, else_):
         substitutes[mistake_pos - 1] = "a = (1)"
     s = s % tuple(substitutes)
     assert len(plugin(s)) == bool(mistake_pos)
+
+
+# TODO: sort this out!
+def test_nested_stuff(plugin):
+    s = """def foo():
+    return bar(
+        a=b,
+        c=a
+          is b
+    )"""
+    assert len(plugin(s)) == 0
