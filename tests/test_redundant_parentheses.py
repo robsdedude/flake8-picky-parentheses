@@ -777,6 +777,21 @@ def test_parens_in_slice_8(plugin):
     assert plugin(s)
 
 
+# GOOD (redundant in slice but help readability)
+def test_parens_in_slice_9(plugin):
+    s = """foo[:i:(-1)]
+"""
+    assert not plugin(s)
+
+
+def test_parens_in_indented_slice(plugin):
+    s = """\
+def foo():
+    a = a[s:(e + 1)]
+"""
+    assert not plugin(s)
+
+
 # GOOD (redundant in comprehension, but help readability of multi-line if)
 @pytest.mark.parametrize("comprehension_type", (
     "()", "[]", "{}",
@@ -945,8 +960,7 @@ elif (
     assert not plugin(s)
 
 
-# TODO: sort this out!
-def test_nested_stuff(plugin):
+def test_multi_line_keyword_in_call(plugin):
     s = """def foo():
     return bar(
         a=b,
@@ -954,6 +968,42 @@ def test_nested_stuff(plugin):
            is b)
     )"""
     assert len(plugin(s)) == 0
+
+
+def test_single_line_keyword_in_call(plugin):
+    s = """def foo():
+    return bar(
+        a=b,
+        c=(a is b)
+    )"""
+    assert len(plugin(s)) == 1
+
+
+def test_multi_line_keyword_in_def(plugin):
+    s = f"""\
+def foo(a=(1
+           + 2)):
+    bar
+"""
+    assert len(plugin(s)) == 0
+
+
+def test_multi_line_keyword_with_annotation_in_def(plugin):
+    s = f"""\
+def foo(a: int = (1
+                  + 2)):
+    bar
+"""
+    assert len(plugin(s)) == 0
+
+
+@pytest.mark.parametrize("type_annotation", ("", ": int "))
+def test_single_line_keyword_in_def(plugin, type_annotation):
+    s = f"""\
+def foo(a{type_annotation}=(1 + 2)):
+    bar
+"""
+    assert len(plugin(s)) == 1
 
 
 @pytest.mark.parametrize("path", (

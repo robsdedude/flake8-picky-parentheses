@@ -53,6 +53,9 @@ class LogicalLine:
             )
         return self._tokens
 
+    def __repr__(self):
+        return f"<LogicalLine L{self.line_offset + 1} {self.line!r}>"
+
 
 @dataclass
 class ProblemRewrite:
@@ -73,10 +76,6 @@ class PluginRedundantParentheses:
         self.tree = tree
         self.file_tokens = list(file_tokens)
         self.lines = lines
-        self.logical_lines = list(
-            self._get_logical_lines(self.lines, self.file_tokens)
-        )
-        self.problems: t.Iterable[t.Tuple[int, int, str]] = []
 
     @staticmethod
     def _get_logical_lines(lines, tokens):
@@ -92,14 +91,15 @@ class PluginRedundantParentheses:
     def run(
         self
     ) -> t.Generator[t.Tuple[int, int, str, t.Type[t.Any]], None, None]:
-        self.check()
-        for line, col, msg in self.problems:
+        logical_lines = self._get_logical_lines(self.lines, self.file_tokens)
+        problems = self._check(logical_lines, self.tree, self.file_tokens)
+        for line, col, msg in problems:
             yield line, col, msg, type(self)
 
-    def check(self):
-        raw_problems = self._get_raw_problems(self.logical_lines)
-        self.problems = self._rewrite_problems(raw_problems, self.tree,
-                                               self.file_tokens)
+    @classmethod
+    def _check(cls, logical_lines, tree, file_tokens):
+        raw_problems = cls._get_raw_problems(logical_lines)
+        yield from cls._rewrite_problems(raw_problems, tree, file_tokens)
 
     @classmethod
     def _get_raw_problems(cls, logical_lines):
@@ -111,10 +111,10 @@ class PluginRedundantParentheses:
                 continue
             logical_line = cls._strip_logical_line(logical_line)
             logical_line = cls._pad_logical_line(logical_line)
-            cls._check_logical_line(logical_line)
             for line, column, msg in cls._check_logical_line(logical_line):
+                if line == 1:
+                    column += logical_line.column_offset
                 line += logical_line.line_offset
-                column += logical_line.column_offset
                 yield line, column, msg
 
     @classmethod
@@ -313,6 +313,21 @@ class PluginRedundantParentheses:
                 parents
                 and isinstance(parents[0], ast.comprehension)
                 and node in parents[0].ifs
+                and parens_coord.open_[0] != parens_coord.close[0]
+            ):
+                rewrite_buffer = ProblemRewrite(parens_coord.open_, None)
+                last_exception_node = node
+            elif (
+                parents
+                and isinstance(parents[0], ast.keyword)
+                and parens_coord.open_[0] != parens_coord.close[0]
+            ):
+                rewrite_buffer = ProblemRewrite(parens_coord.open_, None)
+                last_exception_node = node
+            elif (
+                parents
+                and isinstance(parents[0], ast.arguments)
+                and node in parents[0].defaults
                 and parens_coord.open_[0] != parens_coord.close[0]
             ):
                 rewrite_buffer = ProblemRewrite(parens_coord.open_, None)
