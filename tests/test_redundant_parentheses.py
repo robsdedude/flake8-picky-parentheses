@@ -1,4 +1,5 @@
 import ast
+from pathlib import Path
 import sys
 import tokenize
 from typing import Set
@@ -277,6 +278,27 @@ def test_multi_line_bin_op_example_unnecessary_parens(plugin):
     s = """a = foo + (\\
 bar * baz)
     """
+    assert not plugin(s)
+
+
+@pytest.mark.parametrize("flake", [True, False])
+def test_with_comment(plugin, flake):
+    s = """
+def foo():
+    # a nice comment
+    ...
+    # another nice comment
+    %s
+"""
+    if flake:
+        s = s % "a = (1)"
+    else:
+        s = s % "a = 1"
+    assert len(plugin(s)) == flake
+
+
+def test_only_comment(plugin):
+    s = """# ()"""
     assert not plugin(s)
 
 
@@ -892,20 +914,35 @@ finally:
         (pos, elif_count, False)
         for elif_count in range(1, 3)
         for else_ in (True, False)
-        for pos in range(2 - else_ + elif_count)
+        for pos in range(3 - else_ + elif_count * 2)
     )
 )
 def test_if_elif_else(plugin, mistake_pos, elif_count, else_):
-    s = "if foo:\n    %s\n"
+    s = "if %s:\n    %s\n"
     for _ in range(elif_count):
-        s += "elif bar:\n    %s\n"
+        s += "elif %s:\n    %s\n"
     if else_:
         s += "else:\n    %s\n"
-    substitutes = ["a = 1"] * (1 + elif_count + else_)
+    substitutes = ["foo"] * (2 + elif_count * 2 + else_)
     if mistake_pos:
-        substitutes[mistake_pos - 1] = "a = (1)"
+        substitutes[mistake_pos - 1] = "(foo)"
     s = s % tuple(substitutes)
     assert len(plugin(s)) == bool(mistake_pos)
+
+
+def test_multi_line_if(plugin):
+    s = """if (
+    a
+    or b
+):
+    foo()
+elif (
+    c
+    or d
+):
+    bar
+"""
+    assert not plugin(s)
 
 
 # TODO: sort this out!
@@ -913,7 +950,20 @@ def test_nested_stuff(plugin):
     s = """def foo():
     return bar(
         a=b,
-        c=a
-          is b
+        c=(a
+           is b)
     )"""
     assert len(plugin(s)) == 0
+
+
+@pytest.mark.parametrize("path", (
+    path
+    for path in (
+        Path(__file__).parent / ".." / "flake8_picky_parentheses"
+    ).iterdir()
+    if path.is_file()
+))
+def test_run_on_ourself(plugin, path):
+    with path:
+        s = path.read_text()
+    assert not plugin(s)

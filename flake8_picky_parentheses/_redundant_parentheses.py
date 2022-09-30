@@ -2,35 +2,31 @@ from __future__ import annotations
 
 import ast
 from dataclasses import dataclass
-import re
 import tokenize
 import typing as t
 
 from ._meta import version
 from ._util import find_parens_coords
 
-if ((
-
-    t.TYPE_CHECKING
-)):
+if t.TYPE_CHECKING:
     from ._util import ParensCords
 
 
-LOGICAL_LINE_STRIP_NL_RE = re.compile(
-    r"^((?:\s*\n)*)((?:.|\n)*?)((?:\n\s*)*)$"
-)
-LOGICAL_LINE_STRIP_WS_RE = re.compile(r"^(\s*)((?:.|\n)*)$")
-
 AST_FIX_PREFIXES = {
     "else": "if True:\n   pass\n",
+    "elif": "if True:\n   pass\n",
     "except": "try:\n   pass\n",
     "finally": "try:\n   pass\n",
 }
 
-
 IGNORED_TYPES_FOR_PARENS = {
     tokenize.NL,
     tokenize.COMMENT,
+}
+
+LOGICAL_LINE_STRIPPED_TYPES = {
+    tokenize.NEWLINE, tokenize.NL, tokenize.COMMENT,
+    tokenize.INDENT, tokenize.DEDENT, tokenize.ENDMARKER
 }
 
 
@@ -78,23 +74,19 @@ class PluginRedundantParentheses:
         self.file_tokens = list(file_tokens)
         self.lines = lines
         self.logical_lines = list(
-            self.get_logical_lines(self.lines, self.file_tokens)
+            self._get_logical_lines(self.lines, self.file_tokens)
         )
         self.problems: t.Iterable[t.Tuple[int, int, str]] = []
 
     @staticmethod
-    def get_logical_lines(lines, tokens):
+    def _get_logical_lines(lines, tokens):
         prev_end_line = 0
-        logical_line_tokens: t.List[tokenize.TokenInfo] = []
         for token in tokens:
-            logical_line_tokens.append(token)
             if token.type == tokenize.NEWLINE:
                 yield LogicalLine(
                     "".join(lines[prev_end_line:token.start[0]]),
                     prev_end_line,
-                    tuple(logical_line_tokens)
                 )
-                logical_line_tokens = []
                 prev_end_line = token.start[0]
 
     def run(
@@ -153,28 +145,31 @@ class PluginRedundantParentheses:
 
     @staticmethod
     def _strip_logical_line(logical_line):
-        match = LOGICAL_LINE_STRIP_NL_RE.match(logical_line.line)
-        assert match
-        groups = match.groups()
-        extra_line_offset = 0
-        assert len(groups) == 3
-        stripped_line = groups[1]
-        assert stripped_line is not None
-        if groups[0]:
-            extra_line_offset = groups[0].count("\n")
-        match = LOGICAL_LINE_STRIP_WS_RE.match(stripped_line)
-        assert match
-        groups = match.groups()
-        assert len(groups) == 2
-        extra_column_offset = 0
-        if groups[0]:
-            extra_column_offset = len(groups[0])
-        stripped_line = groups[1]
-        assert stripped_line is not None
+        first_relevant_token = next(
+            token for token in logical_line.tokens
+            if token.type not in LOGICAL_LINE_STRIPPED_TYPES
+        )
+        last_relevant_token = next(
+            token for token in reversed(logical_line.tokens)
+            if token.type not in LOGICAL_LINE_STRIPPED_TYPES
+        )
+        split_lines = logical_line.line.splitlines()
+        start = first_relevant_token.start[0] - 1
+        end = last_relevant_token.end[0] - 1
+        split_lines = split_lines[start:(end + 1)]
+        line_offset = logical_line.line_offset + start
+        start = first_relevant_token.start[1]
+        end = last_relevant_token.end[1]
+        if len(split_lines) == 1:
+            split_lines[0] = split_lines[0][start:(end + 1)]
+        else:
+            split_lines[0] = split_lines[0][start:]
+            split_lines[-1] = split_lines[-1][:(end + 1)]
+        column_offset = logical_line.column_offset + start
         return LogicalLine(
-            line=stripped_line,
-            line_offset=logical_line.line_offset + extra_line_offset,
-            column_offset=extra_column_offset
+            line="\n".join(split_lines),
+            line_offset=line_offset,
+            column_offset=column_offset
         )
 
     @staticmethod
@@ -209,7 +204,10 @@ class PluginRedundantParentheses:
     @classmethod
     def _check_logical_line(cls, logical_line):
         parens_coords = find_parens_coords(logical_line.tokens)
-        tree = ast.parse(logical_line.line)
+        try:
+            tree = ast.parse(logical_line.line)
+        except SyntaxError:
+            raise
         for parens_coord in parens_coords:
             if not cls._parens_check_optional(logical_line, tree,
                                               parens_coord):

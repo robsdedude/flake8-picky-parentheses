@@ -1,3 +1,4 @@
+from pathlib import Path
 import tokenize
 from typing import Set
 
@@ -798,4 +799,13 @@ def test_method_chaining(plugin):
 
 def test_empty(plugin):
     s = "\n    \n    \n"
+    assert not plugin(s)
+
+
+@pytest.mark.parametrize("path", (
+    (Path(__file__).parent / ".." / "flake8_picky_parentheses").iterdir()
+))
+def test_run_on_ourself(plugin, path):
+    with path:
+        s = path.read_text()
     assert not plugin(s)
