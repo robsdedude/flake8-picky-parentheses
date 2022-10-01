@@ -176,22 +176,22 @@ class PluginRedundantParentheses:
     @staticmethod
     def _pad_logical_line(logical_line):
         tokens = logical_line.tokens
-        assert tokens
-
-        if not tokens or tokens[0].type != tokenize.NAME:
+        if not tokens:
+            return logical_line
+        needs_body = logical_line.line.rstrip().endswith(":")
+        is_decorator = logical_line.line.lstrip().startswith("@")
+        ast_fix_prefix = AST_FIX_PREFIXES.get(tokens[0].string)
+        if not (needs_body or is_decorator or ast_fix_prefix):
             return logical_line
 
         line = logical_line.line
         line_offset = logical_line.line_offset
         column_offset = logical_line.column_offset
-        needs_body = logical_line.line.rstrip().endswith(":")
-        is_decorator = logical_line.line.lstrip().startswith("@")
         if is_decorator:
             line += "\ndef f():"
             needs_body = True
         if needs_body:
             line += "\n    pass"
-        ast_fix_prefix = AST_FIX_PREFIXES.get(tokens[0].string)
         if ast_fix_prefix:
             line = ast_fix_prefix + line
             line_offset += ast_fix_prefix.count("\n")

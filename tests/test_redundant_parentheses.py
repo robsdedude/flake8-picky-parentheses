@@ -402,42 +402,28 @@ def test_function_call_redundant_parens_for_readability(plugin):
     assert not plugin(s)
 
 
-# GOOD
-# def test_multi_line_list(plugin):
-# (we can't have just list in program without another functions)
-#     s = """[
-#         1
-#         + 2,
-#         3
-#     ]
-#     """
-#     assert not plugin(s)
+@pytest.mark.parametrize(
+    "body", ("def bar():\n    pass", "class Bar:\n    pass")
+)
+def test_decorator(plugin, body):
+    s = f"""\
+@foo
+{body}
+"""
+    assert not plugin(s)
 
 
-# BAD
-# def test_multi_line_list_unnecessary_parens_1(plugin):
-# (we can't have just list in program without another functions)
-#     s = """[
-#         (1
-#          + 2),
-#         3
-#     ]
-#     """
-#     assert len(plugin(s)) == 1
-
-
-# BAD
-# def test_multi_line_list_unnecessary_parens_2(plugin):
-# (we can't have just list in program without another functions)
-#     s = """[
-#         (
-#             1
-#             + 2
-#         ),
-#         3
-#     ]
-#     """
-#     assert len(plugin(s)) == 1
+@pytest.mark.parametrize(
+    "body", ("def bar():\n    pass", "class Bar:\n    pass")
+)
+@pytest.mark.parametrize("flake", [True, False])
+def test_decorator_call(plugin, body, flake):
+    arg = "(1)" if flake else ""
+    s = f"""\
+@foo({arg})
+{body}
+"""
+    assert len(plugin(s)) == flake
 
 
 # BAD
@@ -967,6 +953,31 @@ def test_single_line_keyword_in_call(plugin):
         a=b,
         c=(a is b)
     )"""
+    assert len(plugin(s)) == 1
+
+
+def test_multi_line_keyword_in_decorator_call(plugin):
+    s = """\
+@baz(
+    a=b,
+    c=(a
+       is b)
+)
+def foo():
+    pass
+"""
+    assert len(plugin(s)) == 0
+
+
+def test_single_line_keyword_in_decorator_call(plugin):
+    s = """\
+@baz(
+    a=b,
+    c=(a is b)
+)
+def foo():
+    pass
+"""
     assert len(plugin(s)) == 1
 
 
