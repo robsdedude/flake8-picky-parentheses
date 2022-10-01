@@ -293,6 +293,36 @@ def test_only_comment(plugin):
     assert not plugin(s)
 
 
+@pytest.mark.parametrize(("string_start", "string_end"), (
+    ("'", "'"),
+    ('"', '"'),
+    ("'''", "'''"),
+    ('"""', '"""'),
+    ("'''\n", "\n'''"),
+    ('"""\n', '\n"""'),
+))
+@pytest.mark.parametrize("nest", [True, False])
+def test_in_string(plugin, string_start, string_end, nest):
+    s = f"{string_start}(){string_end}"
+    if nest:
+        s = f"def foo():\n    {s}"
+    assert not plugin(s)
+
+
+@pytest.mark.parametrize(("string_start", "string_end"), (
+    ("'''", "'''"),
+    ('"""', '"""'),
+))
+def test_in_string_nested_properly(plugin, string_start, string_end):
+    s = f"""\
+def foo():
+    {string_start}
+    ()
+    {string_end}
+"""
+    assert not plugin(s)
+
+
 # BAD (don't use parentheses for unpacking)
 @pytest.mark.parametrize("ws1", _ws_generator())
 @pytest.mark.parametrize("ws2", _ws_generator())
