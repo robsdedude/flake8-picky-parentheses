@@ -228,11 +228,11 @@ foo(bar=(a in b))
 
 # GOOD
 def foo(bar=(a
-             for a in b)):
+             is b)):
     ...
 
 # BAD
-def foo(bar=(a for a in b)):
+def foo(bar=(a is b)):
     ...
 ```
 
