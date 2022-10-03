@@ -1048,3 +1048,60 @@ def foo(a{type_annotation}=(1 + 2)):
 def test_run_on_ourself(plugin, path):
     s = path.read_text()
     assert not plugin(s)
+
+
+@pytest.mark.parametrize("mistake_pos", range(4))
+def test_two_methods(plugin, mistake_pos):
+    s = """class Foo:
+    def bar(self):
+        %s
+    def baz(self):
+        %s
+        %s
+"""
+    substitutes = ["a = 1"] * 3
+    if mistake_pos:
+        substitutes[mistake_pos - 1] = "a = (1)"
+    s = s % tuple(substitutes)
+    assert len(plugin(s)) == bool(mistake_pos)
+
+
+@pytest.mark.parametrize("mistake_pos", range(2))
+@pytest.mark.parametrize("doc_str_delimiter", ('"""', "'''"))
+def test_two_methods_and_function_walk_into_a_bar(plugin, mistake_pos,
+                                                  doc_str_delimiter):
+    s = f"""class Foo:
+    def bar(self):
+        ...
+    def bar(self):
+        {doc_str_delimiter}
+        It's a docstring.
+        {doc_str_delimiter}
+        ...
+%s
+"""
+    substitutes = ["foo()"]
+    if mistake_pos:
+        substitutes[mistake_pos - 1] = "foo((1))"
+    s = s % tuple(substitutes)
+    assert len(plugin(s)) >= bool(mistake_pos)
+
+
+@pytest.mark.parametrize("mistake_pos", range(4))
+@pytest.mark.parametrize("doc_str_delimiter", ('"""', "'''"))
+def test_methods_and_if(plugin, mistake_pos, doc_str_delimiter):
+    s = f"""class Foo:
+    def bar(self):
+        %s
+    def baz(self):
+        {doc_str_delimiter}
+        A docstring.
+        {doc_str_delimiter}
+        if whatever:
+            %s
+"""
+    substitutes = ["a = 1"] * 2
+    if mistake_pos:
+        substitutes[mistake_pos - 2] = "a = (1)"
+    s = s % tuple(substitutes)
+    assert len(plugin(s)) >= bool(mistake_pos)
