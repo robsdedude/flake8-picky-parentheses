@@ -1,6 +1,12 @@
 Changelog
 =========
 
+## NEXT
+***
+**🔧 Fixes**
+* Python 3.10: fix `match`/`case` statements ([#24](https://github.com/robsdedude/flake8-picky-parentheses/pull/24)).
+
+
 ## 0.2.0
 ***
 **♻ Rework of `PAR0xx` ([#22](https://github.com/robsdedude/flake8-picky-parentheses/pull/20))**

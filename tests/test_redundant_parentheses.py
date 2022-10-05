@@ -1,5 +1,6 @@
 import ast
 from pathlib import Path
+import re
 import sys
 import tokenize
 from typing import Set
@@ -963,6 +964,63 @@ elif (
     or d
 ):
     bar
+"""
+    assert not plugin(s)
+
+
+@pytest.mark.skipif(sys.version_info < (3, 10), reason="Python 3.10+ only")
+@pytest.mark.parametrize(("case_", "case_problem_columns"), (
+    ("a", {}),
+    ("(a)", {0}),
+    ("a,", {}),
+    ("(a,)", {}),
+    ("[a]", {}),
+    ("a, b", {}),
+    ("(a, b)", {}),
+    ("[a, b]", {}),
+    ("([a, b])", {0}),
+    ("[(a, b)]", {}),
+    ("((a))", {0}),
+    ("((a,))", {0}),
+    ("((a,),)", {}),
+    ("(a, (b))", {4}),
+    ("(a, (b, c))", {}),
+    ("(a, ((b, c)))", {4}),
+))
+@pytest.mark.parametrize(("match", "match_problem_columns"), (
+    ("foo", {}),
+    ("(foo)", {0}),
+    ("foo + bar + baz", {}),
+    ("(foo + bar) + baz", {}),
+    ("(foo + bar + baz)", {0}),
+))
+def test_match_case(plugin, case_, case_problem_columns,
+                    match, match_problem_columns):
+    s = f"""match {match}:
+    case {case_}:
+        ...
+"""
+    print(s)
+    problems = {re.match(r"^(\d+):(\d+) (\w+)", problem).groups()
+                for problem in plugin(s)}
+    assert problems == (
+        {
+            ("1", str(7 + column), "PAR001")
+            for column in match_problem_columns
+        } | {
+            ("2", str(10 + column), "PAR001")
+            for column in case_problem_columns
+        }
+    )
+
+
+@pytest.mark.skipif(sys.version_info < (3, 10), reason="Python 3.10+ only")
+def test_match_2_case(plugin):
+    s = """match foo:
+    case a:
+        ...
+    case b:
+        ...
 """
     assert not plugin(s)
 
