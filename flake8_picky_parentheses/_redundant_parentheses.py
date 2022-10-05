@@ -260,7 +260,8 @@ class PluginRedundantParentheses:
     @classmethod
     def _get_exceptions_from_ast(cls, sorted_parens_coords, tree, tokens):
         special_ops_pair_exceptions = (
-            ast.BinOp, ast.BoolOp, ast.UnaryOp, ast.Compare, ast.Await
+            ast.BinOp, ast.BoolOp, ast.UnaryOp, ast.Compare, ast.Await,
+            ast.IfExp
         )
         nodes = list(cls._nodes_with_pos_and_parents(tree))
         nodes.sort(key=lambda x: (x[1], len(x[3])))
@@ -296,6 +297,21 @@ class PluginRedundantParentheses:
             ):
                 rewrite_buffer = ProblemRewrite(parens_coord.open_, None)
                 last_exception_node = node
+            elif (
+                parents
+                and isinstance(parents[0], ast.Starred)
+                and isinstance(node, special_ops_pair_exceptions)
+            ):
+                rewrite_buffer = ProblemRewrite(parens_coord.open_, None)
+                last_exception_node = node
+            elif (
+                parents
+                and isinstance(parents[0], ast.keyword)
+                and parents[0].arg is None
+                and isinstance(node, special_ops_pair_exceptions)
+            ):
+                rewrite_buffer = ProblemRewrite(parens_coord.open_, None)
+                last_exception_node = node
             elif isinstance(node, ast.Tuple):
                 if (
                     parents
@@ -310,15 +326,15 @@ class PluginRedundantParentheses:
             elif (
                 parents
                 and isinstance(parents[0], ast.comprehension)
-                and node in parents[0].ifs
-                and parens_coord.open_[0] != parens_coord.close[0]
+                and (node in parents[0].ifs or node == parents[0].iter)
+                and pos[0] != end[0]
             ):
                 rewrite_buffer = ProblemRewrite(parens_coord.open_, None)
                 last_exception_node = node
             elif (
                 parents
                 and isinstance(parents[0], ast.keyword)
-                and parens_coord.open_[0] != parens_coord.close[0]
+                and pos[0] != end[0]
             ):
                 rewrite_buffer = ProblemRewrite(parens_coord.open_, None)
                 last_exception_node = node
@@ -326,7 +342,7 @@ class PluginRedundantParentheses:
                 parents
                 and isinstance(parents[0], ast.arguments)
                 and node in parents[0].defaults
-                and parens_coord.open_[0] != parens_coord.close[0]
+                and pos[0] != end[0]
             ):
                 rewrite_buffer = ProblemRewrite(parens_coord.open_, None)
                 last_exception_node = node
