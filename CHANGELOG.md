@@ -3,6 +3,10 @@ Changelog
 
 ## NEXT
 ***
+**⭐ New**
+* Expanded exception for redundant parentheses that help to highlight operator precedence to also include unpacking arguments (`*`, and `**`) before function arguments ([#23](https://github.com/robsdedude/flake8-picky-parentheses/pull/23)).
+* Add exception for parentheses around multi-line `for` parts in comprehensions ([#23](https://github.com/robsdedude/flake8-picky-parentheses/pull/23)).
+
 **🔧 Fixes**
 * Python 3.10: fix `match`/`case` statements ([#24](https://github.com/robsdedude/flake8-picky-parentheses/pull/24)).
 
@@ -23,6 +27,7 @@ Changelog
 * Fix false positives in classes in Python 3.7
   ([#20](https://github.com/robsdedude/flake8-picky-parentheses/pull/20)).
 
+
 ## 0.1.1
 ***
 **🔧 Fixes**
@@ -32,6 +37,7 @@ Changelog
 * Fix not complaining about misaligned parentheses, brackets, braces when the
   opening line ends on a comment
   ([#18](https://github.com/robsdedude/flake8-picky-parentheses/pull/18)).
+
 
 ## 0.1.0
 ***
