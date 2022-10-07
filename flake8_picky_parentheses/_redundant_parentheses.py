@@ -18,6 +18,11 @@ AST_FIX_PREFIXES = {
     "elif": "if True:\n   pass\n",
     "except": "try:\n   pass\n",
     "finally": "try:\n   pass\n",
+    "case": "match _:\n    ",
+}
+
+AST_FIX_SPECIAL_BODIES = {
+    "match": "\n    case _:\n        pass",
 }
 
 IGNORED_TYPES_FOR_PARENS = {
@@ -191,11 +196,18 @@ class PluginRedundantParentheses:
             line += "\ndef f():"
             needs_body = True
         if needs_body:
-            line += "\n    pass"
+            keyword = line.strip().split()[0]
+            line += AST_FIX_SPECIAL_BODIES.get(keyword, "\n    pass")
         if ast_fix_prefix:
+            extra_indent = ast_fix_prefix.rsplit("\n", 1)[-1]
+            if extra_indent.strip():
+                extra_indent = ""  # contains not only whitespace
+            if extra_indent:
+                line = "\n".join(extra_indent + s for s in line.split("\n"))
+                column_offset -= len(extra_indent)
+                ast_fix_prefix = ast_fix_prefix[:-len(extra_indent)]
             line = ast_fix_prefix + line
-            line_offset += ast_fix_prefix.count("\n")
-            column_offset += len(ast_fix_prefix.rsplit("\n", 1)[-1])
+            line_offset -= ast_fix_prefix.count("\n")
         return LogicalLine(
             line=line,
             line_offset=line_offset,
@@ -343,6 +355,12 @@ class PluginRedundantParentheses:
                 and isinstance(parents[0], ast.arguments)
                 and node in parents[0].defaults
                 and pos[0] != end[0]
+            ):
+                rewrite_buffer = ProblemRewrite(parens_coord.open_, None)
+                last_exception_node = node
+            elif (
+                sys.version_info >= (3, 10)
+                and isinstance(node, ast.MatchSequence)
             ):
                 rewrite_buffer = ProblemRewrite(parens_coord.open_, None)
                 last_exception_node = node
