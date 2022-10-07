@@ -155,8 +155,8 @@ exceptions to this rule:
     Even if these parentheses are redundant, they help to divide parts of
     expressions and show sequence of actions.
  3. Parts of slices
- 4. Multi-line `if` and `for` parts in comprehensions.
- 5. Multi-line keyword arguments or argument defaults.
+ 4. Multi-line<sup>[1)](#footnotes)</sup> `if` and `for` parts in comprehensions.
+ 5. Multi-line<sup>[1)](#footnotes)</sup> keyword arguments or argument defaults.
 
 
 Exception type 1:
@@ -230,7 +230,6 @@ a = (
 )
 
 # BAD
-# GOOD
 a = (
     b for b in (c + d)
 )
@@ -254,6 +253,32 @@ def foo(bar=(a
 def foo(bar=(a is b)):
     ...
 ```
+
+### Footnotes:
+1. Multi-line means that either
+   * the expression spans multiple lines, e.g.,
+     ```python
+     (a
+      + b)
+     ```
+   * or the first part of the expression is on a new line (e.g., if a name is very long), e.g.,
+     ```python
+     (
+         veeeeeeeeeeery_looooooong_name
+     )
+     ```
+     but also
+     ```python
+     (
+         a
+         + b
+     )
+     ```
+   Multi-line exceptions do **not** include
+   ```python
+   (a + b
+   )
+   ```
 
 ## Additional Notes
 

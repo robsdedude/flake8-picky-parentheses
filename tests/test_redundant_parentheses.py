@@ -832,12 +832,14 @@ def test_multi_line_if_with_parens_in_comprehension(plugin,
 @pytest.mark.parametrize("comprehension_type", (
     "()", "[]", "{}",
 ))
-def test_single_line_if_with_parens_in_comprehension(plugin,
-                                                     comprehension_type):
+@pytest.mark.parametrize("expr", ("foo", "foobar or baz"))
+def test_single_line_if_with_parens_in_comprehension(
+    plugin, comprehension_type, expr
+):
     s = f"""{comprehension_type[0]}
     x
     for x in range(10)""" + " " + f"""
-    if (foobar or baz)
+    if ({expr})
 {comprehension_type[1]}
 """
     assert len(plugin(s)) == 1
@@ -847,17 +849,37 @@ def test_single_line_if_with_parens_in_comprehension(plugin,
 @pytest.mark.parametrize("comprehension_type", (
     "()", "[]", "{}",
 ))
+@pytest.mark.parametrize("expr", ("foo", "foobar or baz"))
 def test_practically_single_line_if_with_parens_in_comprehension(
-    plugin, comprehension_type
+    plugin, comprehension_type, expr
 ):
     s = f"""{comprehension_type[0]}
     x
     for x in range(10)""" + " " + f"""
-    if (foobar or baz
+    if ({expr}
     )
 {comprehension_type[1]}
 """
     assert len(plugin(s)) == 1
+
+
+# GOOD (redundant in comprehension, but help readability of multi-line if)
+@pytest.mark.parametrize("comprehension_type", (
+    "()", "[]", "{}",
+))
+@pytest.mark.parametrize("expr", ("foo", "foobar or baz"))
+def test_continuation_if_with_parens_in_comprehension(
+    plugin, comprehension_type, expr
+):
+    s = f"""{comprehension_type[0]}
+    x
+    for x in range(10)""" + " " + f"""
+    if (
+        {expr}
+    )
+{comprehension_type[1]}
+"""
+    assert not plugin(s)
 
 
 # GOOD (redundant in comprehension, but help readability of multi-line in)
@@ -879,11 +901,13 @@ def test_multi_line_in_with_parens_in_comprehension(plugin,
 @pytest.mark.parametrize("comprehension_type", (
     "()", "[]", "{}",
 ))
-def test_single_line_in_with_parens_in_comprehension(plugin,
-                                                     comprehension_type):
+@pytest.mark.parametrize("expr", ("a", "set(a) - set(b)"))
+def test_single_line_in_with_parens_in_comprehension(
+    plugin, comprehension_type, expr
+):
     s = f"""{comprehension_type[0]}
     x
-    for x in (set(a) - set(b))
+    for x in ({expr})
 {comprehension_type[1]}
 """
     assert len(plugin(s)) == 1
@@ -893,16 +917,35 @@ def test_single_line_in_with_parens_in_comprehension(plugin,
 @pytest.mark.parametrize("comprehension_type", (
     "()", "[]", "{}",
 ))
+@pytest.mark.parametrize("expr", ("a", "set(a) - set(b)"))
 def test_practically_single_line_in_with_parens_in_comprehension(
-    plugin, comprehension_type
+    plugin, comprehension_type, expr
 ):
     s = f"""{comprehension_type[0]}
     x
-    for x in (set(a) - set(b)
+    for x in ({expr}
     )
 {comprehension_type[1]}
 """
     assert len(plugin(s)) == 1
+
+
+# GOOD
+@pytest.mark.parametrize("comprehension_type", (
+    "()", "[]", "{}",
+))
+@pytest.mark.parametrize("expr", ("a", "set(a) - set(b)"))
+def test_continuation_in_with_parens_in_comprehension(
+    plugin, comprehension_type, expr
+):
+    s = f"""{comprehension_type[0]}
+    x
+    for x in (
+        {expr}
+    )
+{comprehension_type[1]}
+"""
+    assert not plugin(s)
 
 
 def test_empty(plugin):
@@ -1109,23 +1152,37 @@ def test_multi_line_keyword_in_call(plugin):
     assert len(plugin(s)) == 0
 
 
-def test_single_line_keyword_in_call(plugin):
-    s = """def foo():
+@pytest.mark.parametrize("expr", ("a", "a is b"))
+def test_single_line_keyword_in_call(plugin, expr):
+    s = f"""def foo():
     return bar(
         a=b,
-        c=(a is b)
+        c=({expr})
     )"""
     assert len(plugin(s)) == 1
 
 
-def test_practically_single_line_keyword_in_call(plugin):
-    s = """def foo():
+@pytest.mark.parametrize("expr", ("a", "a is b"))
+def test_practically_single_line_keyword_in_call(plugin, expr):
+    s = f"""def foo():
     return bar(
         a=b,
-        c=(a is b
+        c=({expr}
         )
     )"""
     assert len(plugin(s)) == 1
+
+
+@pytest.mark.parametrize("expr", ("a", "a is b"))
+def test_continuation_keyword_in_call(plugin, expr):
+    s = f"""def foo():
+    return bar(
+        a=b,
+        c=(
+            {expr}
+        )
+    )"""
+    assert not plugin(s)
 
 
 def test_multi_line_keyword_in_decorator_call(plugin):
@@ -1141,11 +1198,12 @@ def foo():
     assert len(plugin(s)) == 0
 
 
-def test_single_line_keyword_in_decorator_call(plugin):
-    s = """\
+@pytest.mark.parametrize("expr", ("a", "a in b"))
+def test_single_line_keyword_in_decorator_call(plugin, expr):
+    s = f"""\
 @baz(
     a=b,
-    c=(a is b)
+    c=({expr})
 )
 def foo():
     pass
@@ -1153,17 +1211,33 @@ def foo():
     assert len(plugin(s)) == 1
 
 
-def test_practically_single_line_keyword_in_decorator_call(plugin):
-    s = """\
+@pytest.mark.parametrize("expr", ("a", "a in b"))
+def test_practically_single_line_keyword_in_decorator_call(plugin, expr):
+    s = f"""\
 @baz(
     a=b,
-    c=(a is b
+    c=({expr}
     )
 )
 def foo():
     pass
 """
     assert len(plugin(s)) == 1
+
+
+@pytest.mark.parametrize("expr", ("a", "a in b"))
+def test_continuation_keyword_in_decorator_call(plugin, expr):
+    s = f"""\
+@baz(
+    a=b,
+    c=(
+        {expr}
+    )
+)
+def foo():
+    pass
+"""
+    assert not plugin(s)
 
 
 def test_multi_line_keyword_in_def(plugin):
@@ -1185,24 +1259,40 @@ def foo(a: int = (1
 
 
 @pytest.mark.parametrize("type_annotation", ("", ": int "))
-def test_single_line_keyword_in_def(plugin, type_annotation):
+@pytest.mark.parametrize("expr", ("1", "1 + 2"))
+def test_single_line_keyword_in_def(plugin, type_annotation, expr):
     s = f"""\
-def foo(a{type_annotation}=(1 + 2)):
+def foo(a{type_annotation}=({expr})):
     bar
 """
     assert len(plugin(s)) == 1
 
 
 @pytest.mark.parametrize("type_annotation", ("", ": int "))
-def test_practically_single_line_keyword_in_def(plugin, type_annotation):
+@pytest.mark.parametrize("expr", ("1", "1 + 2"))
+def test_practically_single_line_keyword_in_def(plugin, type_annotation, expr):
     s = f"""\
 def foo(
-    a{type_annotation}=(1 + 2
+    a{type_annotation}=({expr}
     )
 ):
     bar
 """
     assert len(plugin(s)) == 1
+
+
+@pytest.mark.parametrize("type_annotation", ("", ": int "))
+@pytest.mark.parametrize("expr", ("1", "1 + 2"))
+def test_continuation_keyword_in_def(plugin, type_annotation, expr):
+    s = f"""\
+def foo(
+    a{type_annotation}=(
+        {expr}
+    )
+):
+    bar
+"""
+    assert not plugin(s)
 
 
 @pytest.mark.parametrize("path", (

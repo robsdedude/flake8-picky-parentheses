@@ -339,14 +339,14 @@ class PluginRedundantParentheses:
                 parents
                 and isinstance(parents[0], ast.comprehension)
                 and (node in parents[0].ifs or node == parents[0].iter)
-                and pos[0] != end[0]
+                and (parens_coord.open_[0] != pos[0] or pos[0] != end[0])
             ):
                 rewrite_buffer = ProblemRewrite(parens_coord.open_, None)
                 last_exception_node = node
             elif (
                 parents
                 and isinstance(parents[0], ast.keyword)
-                and pos[0] != end[0]
+                and (parens_coord.open_[0] != pos[0] or pos[0] != end[0])
             ):
                 rewrite_buffer = ProblemRewrite(parens_coord.open_, None)
                 last_exception_node = node
@@ -354,7 +354,7 @@ class PluginRedundantParentheses:
                 parents
                 and isinstance(parents[0], ast.arguments)
                 and node in parents[0].defaults
-                and pos[0] != end[0]
+                and (parens_coord.open_[0] != pos[0] or pos[0] != end[0])
             ):
                 rewrite_buffer = ProblemRewrite(parens_coord.open_, None)
                 last_exception_node = node
