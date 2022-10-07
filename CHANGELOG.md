@@ -1,6 +1,13 @@
 Changelog
 =========
 
+## NEXT
+***
+**⭐ New**
+* Expanded exception for redundant parentheses that help to highlight operator precedence to also include unpacking arguments (`*`, and `**`) before function arguments ([#23](https://github.com/robsdedude/flake8-picky-parentheses/pull/23)).
+* Add exception for parentheses around multi-line `for` parts in comprehensions ([#23](https://github.com/robsdedude/flake8-picky-parentheses/pull/23)).
+
+
 ## 0.2.0
 ***
 **♻ Rework of `PAR0xx` ([#22](https://github.com/robsdedude/flake8-picky-parentheses/pull/20))**

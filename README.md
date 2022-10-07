@@ -155,8 +155,9 @@ exceptions to this rule:
     Even if these parentheses are redundant, they help to divide parts of
     expressions and show sequence of actions.
  3. Parts of slices
- 4. Multi-line `if`s in comprehensions.
+ 4. Multi-line `if` and `for` parts in comprehensions.
  5. Multi-line keyword arguments or argument defaults.
+
 
 Exception type 1:
 ```python
@@ -171,15 +172,21 @@ foo("a",)      # BAD
 
 Exception type 2:
 ```python
-a = (1 + 2) + 3     # GOOD
-a = (1 + 2) % 3     # GOOD
-a = 1 and (2 + 3)   # GOOD
-a = (1 / 2) * 3     # GOOD
-a = not (1 + 2)     # GOOD
-a = (not 1) + 2     # GOOD
-a = (1 + 2)         # BAD
-a = 1 + (2)         # BAD
-a = ((not 1)) + 2   # BAD
+a = (1 + 2) + 3            # GOOD
+a = (1 + 2) % 3            # GOOD
+a = 1 and (2 + 3)          # GOOD
+a = (1 / 2) * 3            # GOOD
+a = not (1 + 2)            # GOOD
+a = (not 1) + 2            # GOOD
+a = 1 + (2 if a else 3)    # GOOD
+a = foo(*(a if b else c))  # GOOD
+a = foo(*(a + b))          # GOOD
+a = foo(**(a + b))         # GOOD
+a = (1 + 2)                # BAD
+a = 1 + (2)                # BAD
+a = ((not 1)) + 2          # BAD
+a = foo(*(a))              # BAD
+a = foo(**(a))             # BAD
 ```
 
 Exception type 3:
@@ -214,6 +221,18 @@ a = [
 a = (
     b for b in c
     if (b in d)
+)
+
+# GOOD
+a = (
+    b for b in (c
+                + d)
+)
+
+# BAD
+# GOOD
+a = (
+    b for b in (c + d)
 )
 ```
 

@@ -610,9 +610,21 @@ d = (1) + (2) + 3  # BAD
     assert positions == {"2:9", "4:5", "4:11"}
 
 
-BIN_OPS = ("**", "*", "@", "/", "//", "%", "+", "-", "<<",
-           ">>", "&", "^", "|", "in", "is", "is not", "<",
-           "<=", ">", ">=", "!=", "==", "and", "or")
+@pytest.mark.parametrize(("expr", "problems"), (
+    ("a = 1 + 2 if foo else 3", 0),
+    ("a = (1 + 2) if foo else 3", 0),
+    ("a = 1 + (2 if foo else 3)", 0),
+    ("a = (2 if foo else 3)", 1),
+))
+def test_if_expr(plugin, expr, problems):
+    assert len(plugin(expr)) == problems
+
+
+BIN_OPS = (
+    "**", "*", "@", "/", "//", "%", "+", "-", "<<", ">>", "&", "^", "|", "in",
+    "not in", "is", "is not", "<", "<=", ">", ">=", "!=", "==", "and", "or",
+    "if baz else"  # not strictly a bin op, but expected to be handled equally
+)
 UNARY_OPS = ("not", "+", "-", "~", "await")
 
 
@@ -824,7 +836,69 @@ def test_single_line_if_with_parens_in_comprehension(plugin,
     s = f"""{comprehension_type[0]}
     x
     for x in range(10)""" + " " + f"""
-    if (foobar)
+    if (foobar or baz)
+{comprehension_type[1]}
+"""
+    assert len(plugin(s)) == 1
+
+
+# BAD (redundant in comprehension and don't help readability of single-line if)
+@pytest.mark.parametrize("comprehension_type", (
+    "()", "[]", "{}",
+))
+def test_practically_single_line_if_with_parens_in_comprehension(
+    plugin, comprehension_type
+):
+    s = f"""{comprehension_type[0]}
+    x
+    for x in range(10)""" + " " + f"""
+    if (foobar or baz
+    )
+{comprehension_type[1]}
+"""
+    assert len(plugin(s)) == 1
+
+
+# GOOD (redundant in comprehension, but help readability of multi-line in)
+@pytest.mark.parametrize("comprehension_type", (
+    "()", "[]", "{}",
+))
+def test_multi_line_in_with_parens_in_comprehension(plugin,
+                                                    comprehension_type):
+    s = f"""{comprehension_type[0]}
+    x
+    for x in (set(a)
+              - set(b))
+{comprehension_type[1]}
+"""
+    assert not plugin(s)
+
+
+# BAD (redundant in comprehension and don't help readability of single-line in)
+@pytest.mark.parametrize("comprehension_type", (
+    "()", "[]", "{}",
+))
+def test_single_line_in_with_parens_in_comprehension(plugin,
+                                                     comprehension_type):
+    s = f"""{comprehension_type[0]}
+    x
+    for x in (set(a) - set(b))
+{comprehension_type[1]}
+"""
+    assert len(plugin(s)) == 1
+
+
+# BAD (redundant in comprehension and don't help readability of single-line in)
+@pytest.mark.parametrize("comprehension_type", (
+    "()", "[]", "{}",
+))
+def test_practically_single_line_in_with_parens_in_comprehension(
+    plugin, comprehension_type
+):
+    s = f"""{comprehension_type[0]}
+    x
+    for x in (set(a) - set(b)
+    )
 {comprehension_type[1]}
 """
     assert len(plugin(s)) == 1
@@ -986,6 +1060,16 @@ def test_single_line_keyword_in_call(plugin):
     assert len(plugin(s)) == 1
 
 
+def test_practically_single_line_keyword_in_call(plugin):
+    s = """def foo():
+    return bar(
+        a=b,
+        c=(a is b
+        )
+    )"""
+    assert len(plugin(s)) == 1
+
+
 def test_multi_line_keyword_in_decorator_call(plugin):
     s = """\
 @baz(
@@ -1004,6 +1088,19 @@ def test_single_line_keyword_in_decorator_call(plugin):
 @baz(
     a=b,
     c=(a is b)
+)
+def foo():
+    pass
+"""
+    assert len(plugin(s)) == 1
+
+
+def test_practically_single_line_keyword_in_decorator_call(plugin):
+    s = """\
+@baz(
+    a=b,
+    c=(a is b
+    )
 )
 def foo():
     pass
@@ -1033,6 +1130,18 @@ def foo(a: int = (1
 def test_single_line_keyword_in_def(plugin, type_annotation):
     s = f"""\
 def foo(a{type_annotation}=(1 + 2)):
+    bar
+"""
+    assert len(plugin(s)) == 1
+
+
+@pytest.mark.parametrize("type_annotation", ("", ": int "))
+def test_practically_single_line_keyword_in_def(plugin, type_annotation):
+    s = f"""\
+def foo(
+    a{type_annotation}=(1 + 2
+    )
+):
     bar
 """
     assert len(plugin(s)) == 1
@@ -1105,3 +1214,78 @@ def test_methods_and_if(plugin, mistake_pos, doc_str_delimiter):
         substitutes[mistake_pos - 2] = "a = (1)"
     s = s % tuple(substitutes)
     assert len(plugin(s)) >= bool(mistake_pos)
+
+
+# Allow parentheses in unpacking arguments if argument
+@pytest.mark.parametrize(("args", "problems"), (
+    ("a", 1),
+    ("a or b", 0),
+    ("a + b", 0),
+    ("a if b else c", 0),
+))
+def test_args_unpacking(plugin, args, problems):
+    s = f"foo(*({args}))"
+    assert len(plugin(s)) == problems
+
+
+@pytest.mark.parametrize(("kwargs", "problems"), (
+    ("a", 1),
+    ("a or b", 0),
+    ("a + b", 0),
+    ("a if b else c", 0),
+))
+def test_kwargs_unpacking(plugin, kwargs, problems):
+    s = f"foo(**({kwargs}))"
+    assert len(plugin(s)) == problems
+
+
+@pytest.mark.parametrize("dict_", (
+    """{
+    "bar": ("baz"
+            "az")
+}""",
+    """{
+    "bar": (a
+            + b)
+}""",
+    """{
+    "bar": (
+        "baz"
+        "az"
+    )
+}""",
+    """{
+    "bar": (
+        a
+        + b
+    )
+}""",
+))
+def test_multi_line_dict_value_with_parens(plugin, dict_):
+    s = f"foo = {dict_}"
+    assert len(plugin(s)) == 1
+
+
+@pytest.mark.parametrize("dict_", (
+    """{
+    "bar": "baz"
+           "az"
+}""",
+    """{
+    "bar": a
+           + b
+}""",
+    """{
+    "bar":
+        "baz"
+        "az"
+}""",
+    """{
+    "bar":
+        a
+        + b
+}""",
+))
+def test_multi_line_dict_value_without_parens(plugin, dict_):
+    s = f"foo = {dict_}"
+    assert not plugin(s)
