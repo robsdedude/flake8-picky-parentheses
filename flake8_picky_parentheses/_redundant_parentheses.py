@@ -22,7 +22,7 @@ AST_FIX_PREFIXES = {
 }
 
 AST_FIX_SPECIAL_BODIES = {
-    "match": "\n   case _:        pass\n",
+    "match": "\n    case _:\n        pass",
 }
 
 IGNORED_TYPES_FOR_PARENS = {
