@@ -2,6 +2,9 @@ Changelog
 =========
 
 ## NEXT
+
+
+## 0.3.1
 ***
 **🔧 Fixes**
 * Improve exceptions for redundant parentheses in multi-line cases + clarify documentation in that area ([#25](https://github.com/robsdedude/flake8-picky-parentheses/pull/25)).
