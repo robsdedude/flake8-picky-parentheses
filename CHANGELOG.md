@@ -2,6 +2,9 @@ Changelog
 =========
 
 ## NEXT
+
+
+## 0.3.2
 ***
 **🔧 Fixes**
 * Fix exception for parentheses in slices under Python 3.9+ ([#26](https://github.com/robsdedude/flake8-picky-parentheses/pull/26)).
