@@ -420,13 +420,22 @@ class PluginRedundantParentheses:
                     end = max(end, child[2])
 
         if pos is not None:
-            yield node, pos, end, parents
+            yield node, pos, cls._node_end(node, end), parents
 
     @staticmethod
     def _node_pos(node, default):
         if not hasattr(node, "lineno") or not hasattr(node, "col_offset"):
             return default
         return node.lineno, node.col_offset
+
+    @staticmethod
+    def _node_end(node, default):
+        if (
+            not hasattr(node, "end_lineno")
+            or not hasattr(node, "end_col_offset")
+        ):
+            return default
+        return node.end_lineno, node.end_col_offset
 
     @staticmethod
     def _get_exceptions_for_neighboring_parens(sorted_optional_parens_coords,
@@ -462,4 +471,6 @@ class PluginRedundantParentheses:
     @staticmethod
     def _node_in_parens(parens_coord, pos, end):
         open_, _, _, close, _ = parens_coord
+        close = close[0], close[1] + 1
+        # close[1] + 1 to allow the closing parenthesis to be part of the node
         return open_ <= pos <= end <= close

@@ -741,74 +741,200 @@ def test_double_superfluous_but_helping_parentheses_around_bin_op(
     assert len(plugin(s)) == 1 + introduced_flakes
 
 
+def _slice_in_tuple(s, tuple_, unpack):
+    start = end = ""
+    if tuple_ == "implicit":
+        start = "a, "
+    elif tuple_ == "explicit":
+        start, end = "(a, ", ")"
+    start += "*" if unpack else ""
+    return s.format(start, end)
+
+
 # GOOD (redundant in slice, but help readability)
-def test_parens_in_slice_1(plugin):
-    s = """foo[i:(i + 1)]
+@pytest.mark.parametrize(("tuple_", "unpack"), (
+    ("no", False),
+    ("implicit", False),
+    ("implicit", True),
+    ("explicit", False),
+    ("explicit", True),
+))
+def test_parens_in_slice_1(plugin, tuple_, unpack):
+    s = """{}foo[i:(i + 1)]{}
 """
+    s = _slice_in_tuple(s, tuple_, unpack)
     assert not plugin(s)
 
 
 # GOOD (redundant in slice, but help readability)
-def test_parens_in_slice_2(plugin):
-    s = """foo[(i - 1):i]
+@pytest.mark.parametrize(("tuple_", "unpack"), (
+    ("no", False),
+    ("implicit", False),
+    ("implicit", True),
+    ("explicit", False),
+    ("explicit", True),
+))
+def test_parens_in_slice_2(plugin, tuple_, unpack):
+    s = """{}foo[(-1):i]{}
 """
+    s = _slice_in_tuple(s, tuple_, unpack)
+    assert not plugin(s)
+
+
+# GOOD (redundant in slice, but help readability)
+@pytest.mark.parametrize(("tuple_", "unpack"), (
+    ("no", False),
+    ("implicit", False),
+    ("implicit", True),
+    ("explicit", False),
+    ("explicit", True),
+))
+def test_parens_in_slice_2_no_end(plugin, tuple_, unpack):
+    s = """{}foo[(-1):]{}
+"""
+    s = _slice_in_tuple(s, tuple_, unpack)
     assert not plugin(s)
 
 
 # GOOD (redundant in slice but help readability)
-def test_parens_in_slice_3(plugin):
-    s = """foo[i:(-1)]
+@pytest.mark.parametrize(("tuple_", "unpack"), (
+    ("no", False),
+    ("implicit", False),
+    ("implicit", True),
+    ("explicit", False),
+    ("explicit", True),
+))
+def test_parens_in_slice_3(plugin, tuple_, unpack):
+    s = """{}foo[i:(-1)]{}
 """
+    s = _slice_in_tuple(s, tuple_, unpack)
+    assert not plugin(s)
+
+
+# GOOD (redundant in slice but help readability)
+@pytest.mark.parametrize(("tuple_", "unpack"), (
+    ("no", False),
+    ("implicit", False),
+    ("implicit", True),
+    ("explicit", False),
+    ("explicit", True),
+))
+def test_parens_in_slice_3_no_start(plugin, tuple_, unpack):
+    s = """{}foo[:(-1)]{}
+"""
+    s = _slice_in_tuple(s, tuple_, unpack)
     assert not plugin(s)
 
 
 # GOOD ()
-def test_parens_in_slice_4(plugin):
-    s = """foo[i:-1]
+@pytest.mark.parametrize(("tuple_", "unpack"), (
+    ("no", False),
+    ("implicit", False),
+    ("implicit", True),
+    ("explicit", False),
+    ("explicit", True),
+))
+def test_parens_in_slice_4(plugin, tuple_, unpack):
+    s = """{}foo[i:-1]{}
 """
+    s = _slice_in_tuple(s, tuple_, unpack)
     assert not plugin(s)
 
 
 # BAD (redundant in slice and don't help readability)
-def test_parens_in_slice_5(plugin):
-    s = """foo[(0):i]
+@pytest.mark.parametrize(("tuple_", "unpack"), (
+    ("no", False),
+    ("implicit", False),
+    ("implicit", True),
+    ("explicit", False),
+    ("explicit", True),
+))
+def test_parens_in_slice_5(plugin, tuple_, unpack):
+    s = """{}foo[(0):i]{}
 """
+    s = _slice_in_tuple(s, tuple_, unpack)
     assert len(plugin(s)) == 1
 
 
 # GOOD (redundant in slice, but help readability)
-def test_parens_in_slice_6(plugin):
-    s = """foo[i: (i + 1) ]
+@pytest.mark.parametrize(("tuple_", "unpack"), (
+    ("no", False),
+    ("implicit", False),
+    ("implicit", True),
+    ("explicit", False),
+    ("explicit", True),
+))
+def test_parens_in_slice_6(plugin, tuple_, unpack):
+    s = """{}foo[i: (i + 1) ]{}
 """
+    s = _slice_in_tuple(s, tuple_, unpack)
     assert not plugin(s)
 
 
 # GOOD (redundant in slice, but help readability)
-def test_parens_in_slice_7(plugin):
-    s = """foo[i:( i + 1 )]
+@pytest.mark.parametrize(("tuple_", "unpack"), (
+    ("no", False),
+    ("implicit", False),
+    ("implicit", True),
+    ("explicit", False),
+    ("explicit", True),
+))
+def test_parens_in_slice_7(plugin, tuple_, unpack):
+    s = """{}foo[i:( i + 1 )]{}
 """
+    s = _slice_in_tuple(s, tuple_, unpack)
     assert not plugin(s)
 
 
 # BAD (on pair would've been enough)
-def test_parens_in_slice_8(plugin):
-    s = """foo[((i - 1)):i]
+@pytest.mark.parametrize(("tuple_", "unpack"), (
+    ("no", False),
+    ("implicit", False),
+    ("implicit", True),
+    ("explicit", False),
+    ("explicit", True),
+))
+def test_parens_in_slice_8(plugin, tuple_, unpack):
+    s = """{}foo[((i - 1)):i]{}
 """
+    s = _slice_in_tuple(s, tuple_, unpack)
     assert plugin(s)
 
 
 # GOOD (redundant in slice but help readability)
-def test_parens_in_slice_9(plugin):
-    s = """foo[:i:(-1)]
+@pytest.mark.parametrize(("tuple_", "unpack"), (
+    ("no", False),
+    ("implicit", False),
+    ("implicit", True),
+    ("explicit", False),
+    ("explicit", True),
+))
+def test_parens_in_slice_9(plugin, tuple_, unpack):
+    s = """{}foo[:i:(-1)]{}
 """
+    s = _slice_in_tuple(s, tuple_, unpack)
     assert not plugin(s)
 
 
-def test_parens_in_indented_slice(plugin):
+# GOOD (redundant in slice but help readability)
+@pytest.mark.parametrize(("tuple_", "unpack"), (
+    ("no", False),
+    ("implicit", False),
+    ("implicit", True),
+    ("explicit", False),
+    ("explicit", True),
+))
+def test_parens_in_indented_slice(plugin, tuple_, unpack):
     s = """\
 def foo():
-    a = a[s:(e + 1)]
+    a = {}a[s:(e + 1)]{}
 """
+    s = _slice_in_tuple(s, tuple_, unpack)
+    assert not plugin(s)
+
+
+def test_(plugin):
+    s = "a, b[(-1):]"
     assert not plugin(s)
 
 
