@@ -1200,6 +1200,20 @@ finally:
     assert len(plugin(s)) == bool(mistake_pos)
 
 
+@pytest.mark.parametrize("except_", (
+    except_.replace("(", "((").replace(")", "))")
+    for except_ in EXCEPT_STATEMENTS if "(" in except_
+))
+def test_redundant_parens_in_except(plugin, except_):
+    s = """\
+try:
+    a = 1
+%s
+    a = 2
+""" % except_
+    assert len(plugin(s)) == 1
+
+
 @pytest.mark.parametrize(
     ("mistake_pos", "elif_count", "else_"),
     (
