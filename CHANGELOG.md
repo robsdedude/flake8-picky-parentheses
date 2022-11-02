@@ -3,8 +3,12 @@ Changelog
 
 ## NEXT
 ***
+
+
+## 0.4.0
+***
 **⭐ New**
-* Add support for Python 3.11 ([#27](https://github.com/robsdedude/flake8-picky-parentheses/pull/27))
+* Add support for Python 3.11 ([#28](https://github.com/robsdedude/flake8-picky-parentheses/pull/28))
 
 
 ## 0.3.2
