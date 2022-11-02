@@ -19,7 +19,7 @@ The plugin has two components:
 
 
 ## Installation and Usage
-This is a plugin for `flake8`. It supports Python 3.7 - 3.10.  
+This is a plugin for `flake8`. It supports Python 3.7 - 3.11.  
 Refer to the documentation of `flake8` on how to run it on your code:
 https://flake8.pycqa.org/en/latest/
 
