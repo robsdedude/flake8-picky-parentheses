@@ -1110,13 +1110,36 @@ def test_function_call_with_empty_line_in_method(plugin):
     assert not plugin(s)
 
 
+EXCEPT_STATEMENTS = (
+    "except:",
+    "except Foo:",
+    "except Foo as e:",
+    "except (Foo,):",
+    "except (Foo,) as e:",
+    "except (Foo, Bar):",
+    "except (Foo, Bar) as e:",
+    *(
+        () if sys.version_info < (3, 11) else (
+            # "except*:",  # invalid syntax
+            "except* Foo:",
+            "except* Foo as e:",
+            "except* (Foo,):",
+            "except* (Foo,) as e:",
+            "except* (Foo, Bar):",
+            "except* (Foo, Bar) as e:"
+        )
+    ),
+)
+
+
 @pytest.mark.parametrize("mistake_pos", (0, 1, 2))
-def test_try_except(plugin, mistake_pos):
+@pytest.mark.parametrize("except_", EXCEPT_STATEMENTS)
+def test_try_except(plugin, mistake_pos, except_):
     s = """try:
-    %s
-except:
-    %s
-"""
+    %%s
+%s
+    %%s
+""" % except_
     substitutes = ["a = 1"] * 2
     if mistake_pos:
         substitutes[mistake_pos - 1] = "a = (1)"
@@ -1125,14 +1148,15 @@ except:
 
 
 @pytest.mark.parametrize("mistake_pos", (0, 1, 2, 3))
-def test_try_except_finally(plugin, mistake_pos):
+@pytest.mark.parametrize("except_", EXCEPT_STATEMENTS)
+def test_try_except_finally(plugin, mistake_pos, except_):
     s = """try:
-    %s
-except:
-    %s
+    %%s
+%s
+    %%s
 finally:
-    %s
-"""
+    %%s
+""" % except_
     substitutes = ["a = 1"] * 3
     if mistake_pos:
         substitutes[mistake_pos - 1] = "a = (1)"
@@ -1141,14 +1165,15 @@ finally:
 
 
 @pytest.mark.parametrize("mistake_pos", (0, 1, 2, 3))
-def test_try_except_else(plugin, mistake_pos):
+@pytest.mark.parametrize("except_", EXCEPT_STATEMENTS)
+def test_try_except_else(plugin, mistake_pos, except_):
     s = """try:
-    %s
-except:
-    %s
+    %%s
+%s
+    %%s
 else:
-    %s
-"""
+    %%s
+""" % except_
     substitutes = ["a = 1"] * 3
     if mistake_pos:
         substitutes[mistake_pos - 1] = "a = (1)"
@@ -1157,16 +1182,17 @@ else:
 
 
 @pytest.mark.parametrize("mistake_pos", (0, 1, 2, 3))
-def test_try_except_else_finally(plugin, mistake_pos):
+@pytest.mark.parametrize("except_", EXCEPT_STATEMENTS)
+def test_try_except_else_finally(plugin, mistake_pos, except_):
     s = """try:
-    %s
-except:
-    %s
+    %%s
+%s
+    %%s
 else:
-    %s
+    %%s
 finally:
-    %s
-"""
+    %%s
+""" % except_
     substitutes = ["a = 1"] * 4
     if mistake_pos:
         substitutes[mistake_pos - 1] = "a = (1)"
