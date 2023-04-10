@@ -76,7 +76,7 @@ class PluginBracketsPosition:
                     break
                 self.problems.append((
                     coords_close[0], coords_close[1],
-                    "PAR101: Closing bracket has different indentation than "
+                    "PAR102: Closing bracket has different indentation than "
                     "the line with the opening bracket"
                 ))
 
@@ -98,7 +98,7 @@ class PluginBracketsPosition:
                 if is_opening_sequence and not is_closing_sequence:
                     self.problems.append((
                         coords[0][0], coords[0][1],
-                        "PAR101: Consecutive opening brackets at the end of "
+                        "PAR103: Consecutive opening brackets at the end of "
                         "the line must have consecutive closing brackets."
                     ))
 
@@ -142,7 +142,7 @@ class PluginBracketsPosition:
                         and breaker != 1):
                     self.problems.append((
                         close_coords[0], close_coords[1],
-                        "PAR101: Only operators and comments are allowed "
+                        "PAR104: Only operators and comments are allowed "
                         "after a closing bracket on a new line"
                     ))
                     break
