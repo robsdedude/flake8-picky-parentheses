@@ -1,17 +1,22 @@
 from pathlib import Path
 import tokenize
-from typing import Set
+from typing import List
 
 import pytest
 
 from flake8_picky_parentheses import PluginBracketsPosition
+
+from ._common import (
+    lint_codes,
+    no_lint,
+)
 
 
 @pytest.fixture(params=[True, False])
 def plugin(request):
     use_run = request.param
 
-    def run(s: str) -> Set[str]:
+    def run(s: str) -> List[str]:
         lines = s.splitlines(keepends=True)
 
         def read_lines():
@@ -28,7 +33,7 @@ def plugin(request):
                 (line, col, msg, type(plugin))
                 for line, col, msg in plugin.problems
             )
-        return {f"{line}:{col + 1} {msg}" for line, col, msg, _ in problems}
+        return [f"{line}:{col + 1} {msg}" for line, col, msg, _ in problems]
 
     return run
 
@@ -40,7 +45,7 @@ a == b
 ):
     c + d
     """
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD (use parentheses in both case of line continuation)
@@ -49,7 +54,7 @@ def test_parentheses_in_if_only_with_second_new_line(plugin):
 ):
     c + d
     """
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD (use parentheses in both case of line continuation)
@@ -58,7 +63,7 @@ def test_parentheses_in_if_only_with_second_new_line_and_comment(plugin):
 ):
     c + d
     """
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # BAD (use parentheses in both case of line continuation)
@@ -67,7 +72,7 @@ def test_parentheses_in_if_only_with_first_new_line(plugin):
 a == b):
     c + d
     """
-    assert plugin(s)
+    assert lint_codes(plugin(s), ["PAR101"])
 
 
 # BAD (use parentheses in both case of line continuation)
@@ -76,7 +81,7 @@ def test_parentheses_in_if_only_with_first_new_line_and_comment(plugin):
 a == b):
     c + d
     """
-    assert plugin(s)
+    assert lint_codes(plugin(s), ["PAR101"])
 
 
 # GOOD
@@ -85,7 +90,7 @@ def test_parentheses_in_if_only_with_first_new_line_and_tab_comment(plugin):
 1, 2
 )
     """
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # BAD (don't put the if body on the same line, m'kay?)
@@ -94,7 +99,7 @@ def test_if_body_on_new_line_after_multi_line_condition(plugin):
 a == b
 ): c + d
     """
-    assert plugin(s)
+    assert lint_codes(plugin(s), ["PAR104"])
 
 
 # BAD (use parentheses in both case of line continuation)
@@ -103,7 +108,7 @@ def test_parentheses_in_if_with_trailing_tab_only_with_first_new_line(plugin):
 a == b):
     c + d
     """
-    assert plugin(s)
+    assert lint_codes(plugin(s), ["PAR101"])
 
 
 # BAD (use parentheses in both case of line continuation)
@@ -112,13 +117,13 @@ def test_parentheses_if_with_trailing_space_only_with_first_new_line(plugin):
 a == b):
     c + d
     """
-    assert plugin(s)
+    assert lint_codes(plugin(s), ["PAR101"])
 
 
 # GOOD (have all brackets on the same line)
 def test_list_in_one_line(plugin):
     s = """a = [1, 2, 3]"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD
@@ -129,21 +134,21 @@ def test_list_with_enters_line(plugin):
     s = """a = [
 1, 2, 3
 ]"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # BAD (opening bracket is last, but closing is not on new line)
 def test_list_with_only_one_enter_line(plugin):
     s = """a = [
 1, 2, 3]"""
-    assert plugin(s)
+    assert lint_codes(plugin(s), ["PAR101"])
 
 
 # BAD (opening bracket is last, but closing is not on new line)
 def test_list_with_only_one_enter_line_and_comment(plugin):
     s = """a = [  # cool comment!
 1, 2, 3]"""
-    assert plugin(s)
+    assert lint_codes(plugin(s), ["PAR101"])
 
 
 # BAD
@@ -152,21 +157,21 @@ def test_list_mismatch_line(plugin):
     s = """a = [
 1, 2, 3
     ]"""
-    assert plugin(s)
+    assert lint_codes(plugin(s), ["PAR102"])
 
 
 # GOOD (opening bracket is not last, so we don't care about the closing one)
 def test_list_open_bracket_not_last(plugin):
     s = """a = [1, 2, 3
 ]"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD (opening bracket is not last, so we don't care about the closing one)
 def test_list_open_bracket_not_last_2(plugin):
     s = """a = [1, 2, 3
     ]"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # (pretty much the same rules apply for multiple brackets)
@@ -174,7 +179,7 @@ def test_list_open_bracket_not_last_2(plugin):
 # GOOD (have all brackets on the same line)
 def test_nested_list(plugin):
     s = """a = [[1, 2, 3], [4, 5, 6]]"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD
@@ -182,7 +187,7 @@ def test_nested_list_with_enters(plugin):
     s = """a = [
 [1, 2, 3], [4, 5, 6]
 ]"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD
@@ -191,7 +196,7 @@ def test_nested_list_with_enters_2(plugin):
 [1, 2, 3],
 [4, 5, 6]
 ]"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD
@@ -199,7 +204,7 @@ def test_nested_list_with_enters_3(plugin):
     s = """a = [[
 1, 2, 3
 ]]"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD
@@ -212,7 +217,7 @@ def test_nested_list_with_enters_4(plugin):
         4, 5, 6
     ]
 ]"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD
@@ -223,7 +228,7 @@ def test_nested_list_addition_1(plugin):
         2
     ]
 ]"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # BAD
@@ -234,7 +239,7 @@ def test_nested_list_addition_2(plugin):
         2
      ]
 ]"""
-    assert plugin(s)
+    assert lint_codes(plugin(s), ["PAR102"])
 
 
 # BAD
@@ -248,7 +253,7 @@ def test_nested_list_mismatch(plugin):
         4, 5, 6
     ]
   ]"""
-    assert plugin(s)
+    assert lint_codes(plugin(s), ["PAR102"])
 
 
 # BAD
@@ -262,7 +267,7 @@ def test_nested_list_mismatch_2(plugin):
         4, 5, 6
     ]
 ]"""
-    assert plugin(s)
+    assert lint_codes(plugin(s), ["PAR102"])
 
 
 # BAD
@@ -276,7 +281,7 @@ def test_nested_list_mismatch_3(plugin):
         4, 5, 6
      ]
 ]"""
-    assert plugin(s)
+    assert lint_codes(plugin(s), ["PAR102"])
 
 
 # BAD
@@ -288,7 +293,7 @@ def test_nested_list_mismatch_4(plugin):
 ], [
     4, 5, 6
 ]]"""
-    assert plugin(s)
+    assert lint_codes(plugin(s), ["PAR103"])
 
 
 # BAD (only OPs and comments  after a closing bracket on a new line)
@@ -310,7 +315,7 @@ def test_combine_two_faults(plugin):
     ], [
     4, 5, 6
 ]]"""
-    assert plugin(s)
+    assert lint_codes(plugin(s), ["PAR102", "PAR103", "PAR102"])
 
 
 # BAD
@@ -321,7 +326,7 @@ def test_brackets_on_diff_lines_1(plugin):
     1, 2, 3
 ]
 ]"""
-    assert plugin(s)
+    assert lint_codes(plugin(s), ["PAR103"])
 
 
 # BAD
@@ -332,7 +337,7 @@ def test_brackets_on_diff_lines_2(plugin):
     1, 2, 3
 ]
 ]}"""
-    assert plugin(s)
+    assert lint_codes(plugin(s), ["PAR103", "PAR103"])
 
 
 # BAD
@@ -343,7 +348,7 @@ def test_brackets_on_diff_lines_3(plugin):
     1, 2, 3
 ]]
 }"""
-    assert plugin(s)
+    assert lint_codes(plugin(s), ["PAR103"])
 
 
 # GOOD
@@ -353,7 +358,7 @@ def test_brackets_on_same_lines(plugin):
     2, 3
 ]]
 """
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD
@@ -364,22 +369,13 @@ def test_brackets_on_different_lines_1(plugin):
 ]
 ]
 """
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD
-# (plugin only checks brackets that end lines)
-def test_brackets_on_different_lines_2(plugin):
-    s = """a = [1, [
-    2, 3
-]]
-"""
-    assert not plugin(s)
-
-
 def test_dict_in_one_line(plugin):
     s = """a = {1, 2, 3}"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD
@@ -390,7 +386,7 @@ def test_dict_with_enters_line(plugin):
     s = """a = {
 1, 2, 3
 }"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD
@@ -398,21 +394,21 @@ def test_dict_with_enters_line_and_comment(plugin):
     s = """a = {  # cool comment!
 1, 2, 3
 }"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # BAD (opening bracket is last, but closing is not on new line)
 def test_dict_with_only_one_enter_line(plugin):
     s = """a = {
 1, 2, 3}"""
-    assert plugin(s)
+    assert lint_codes(plugin(s), ["PAR101"])
 
 
 # BAD (opening bracket is last, but closing is not on new line)
 def test_dict_with_only_one_enter_line_and_comment(plugin):
     s = """a = {  # cool comment!
 1, 2, 3}"""
-    assert plugin(s)
+    assert lint_codes(plugin(s), ["PAR101"])
 
 
 # BAD
@@ -421,21 +417,21 @@ def test_dict_mismatch_line(plugin):
     s = """a = {
 1, 2, 3
     }"""
-    assert plugin(s)
+    assert lint_codes(plugin(s), ["PAR102"])
 
 
 # GOOD (opening bracket is not last, so we don't care about the closing one)
 def test_dict_open_bracket_not_last(plugin):
     s = """a = {1, 2, 3
 }"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD (opening bracket is not last, so we don't care about the closing one)
 def test_dict_open_bracket_not_last_2(plugin):
     s = """a = {1, 2, 3
     }"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # (pretty much the same rules apply for multiple brackets)
@@ -443,7 +439,7 @@ def test_dict_open_bracket_not_last_2(plugin):
 # GOOD (have all brackets on the same line)
 def test_nested_dict(plugin):
     s = """a = {{1, 2, 3}, {4, 5, 6}}"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD
@@ -451,7 +447,7 @@ def test_nested_dict_with_enters(plugin):
     s = """a = {
 {1, 2, 3}, {4, 5, 6}
 }"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD
@@ -460,7 +456,7 @@ def test_nested_dict_with_enters_2(plugin):
 {1, 2, 3},
 {4, 5, 6}
 }"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD
@@ -468,7 +464,7 @@ def test_nested_dict_with_enters_3(plugin):
     s = """a = {{
 1, 2, 3
 }}"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 def test_dict_brackets_on_diff_lines(plugin):
@@ -476,12 +472,12 @@ def test_dict_brackets_on_diff_lines(plugin):
     1, 2, 3
 }
 }"""
-    assert plugin(s)
+    assert lint_codes(plugin(s), ["PAR103"])
 
 
 def test_tuple_in_one_line(plugin):
     s = """a = (1, 2, 3)"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD
@@ -492,21 +488,21 @@ def test_tuple_with_enters_line(plugin):
     s = """a = (
 1, 2, 3
 )"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # BAD (opening bracket is last, but closing is not on new line)
 def test_tuple_with_only_one_enter_line(plugin):
     s = """a = (
 1, 2, 3)"""
-    assert plugin(s)
+    assert lint_codes(plugin(s), ["PAR101"])
 
 
 # BAD (opening bracket is last, but closing is not on new line)
 def test_tuple_with_only_one_enter_line_and_comment(plugin):
     s = """a = (  # cool comment!
 1, 2, 3)"""
-    assert plugin(s)
+    assert lint_codes(plugin(s), ["PAR101"])
 
 
 # BAD
@@ -515,21 +511,21 @@ def test_tuple_mismatch_line(plugin):
     s = """a = (
 1, 2, 3
     )"""
-    assert plugin(s)
+    assert lint_codes(plugin(s), ["PAR102"])
 
 
 # GOOD (opening bracket is not last, so we don't care about the closing one)
 def test_tuple_open_bracket_not_last(plugin):
     s = """a = (1, 2, 3
 )"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD (opening bracket is not last, so we don't care about the closing one)
 def test_tuple_open_bracket_not_last_2(plugin):
     s = """a = (1, 2, 3
     )"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # (pretty much the same rules apply for multiple brackets)
@@ -537,7 +533,7 @@ def test_tuple_open_bracket_not_last_2(plugin):
 # GOOD (have all brackets on the same line)
 def test_nested_tuple(plugin):
     s = """a = ((1, 2, 3), (4, 5, 6))"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD
@@ -545,7 +541,7 @@ def test_nested_tuple_with_enters(plugin):
     s = """a = (
 (1, 2, 3), (4, 5, 6)
 )"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD
@@ -554,7 +550,7 @@ def test_nested_tuple_with_enters_2(plugin):
 (1, 2, 3),
 (4, 5, 6)
 )"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD
@@ -562,7 +558,7 @@ def test_nested_tuple_with_enters_3(plugin):
     s = """a = ((
 1, 2, 3
 ))"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 def test_parentheses_in_while_on_new_line(plugin):
@@ -571,7 +567,7 @@ a == b
 ):
     c + d
     """
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # BAD (use parentheses in both case of line continuation)
@@ -580,7 +576,7 @@ def test_parentheses_in_while_only_with_second_new_line(plugin):
 ):
     c + d
     """
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # BAD (use parentheses in both case of line continuation)
@@ -589,38 +585,38 @@ def test_parentheses_in_while_only_with_first_new_line(plugin):
 a == b):
     c + d
     """
-    assert plugin(s)
+    assert lint_codes(plugin(s), ["PAR101"])
 
 
 def test_import(plugin):
     s = """from c import (a, b)"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 def test_import_in_three_lines(plugin):
     s = """from c import (
     a, b
 )"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 def test_ok_import_in_two_lines(plugin):
     s = """from c import (a, b
 )"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 def test_bad_import_in_two_lines(plugin):
     s = """from c import (
     a, b)"""
-    assert plugin(s)
+    assert lint_codes(plugin(s), ["PAR101"])
 
 
 def test_simple_with(plugin):
     s = """with foo as bar:
     pass
 """
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 def test_simple_with_multi_line_1(plugin):
@@ -629,7 +625,7 @@ def test_simple_with_multi_line_1(plugin):
 ) as bar:
     pass
 """
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 def test_simple_with_multi_line_2(plugin):
@@ -639,12 +635,12 @@ def test_simple_with_multi_line_2(plugin):
 }) as baz:
     pass
 """
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 def test_with_two_args(plugin):
     s = """with (foo as bar, baz as foobar):"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD
@@ -653,7 +649,7 @@ def test_with_two_args_multi_line(plugin):
     foo as bar,
     baz as foobar
 ):"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # BAD
@@ -662,7 +658,7 @@ def test_with_two_args_multi_line_misaligned_close_1(plugin):
     foo as bar,
     baz as foobar
     ):"""
-    assert plugin(s)
+    assert lint_codes(plugin(s), ["PAR102"])
 
 
 # BAD
@@ -670,7 +666,7 @@ def test_with_two_args_multi_line_misaligned_close_2(plugin):
     s = """with (
     foo as bar,
     baz as foobar):"""
-    assert plugin(s)
+    assert lint_codes(plugin(s), ["PAR101"])
 
 
 # GOOD
@@ -678,7 +674,7 @@ def test_function_args_line_break(plugin):
     s = """zip(parens_cords_sorted[:-1],
    parens_cords_sorted[1:])
 """
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # if there is a closing bracket on after a new line, this line should only
@@ -699,7 +695,7 @@ def test_nested_new_lines_1(plugin):
     )
 )
 """
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD (only other operators on the line after closing parenthesis)
@@ -719,7 +715,7 @@ def test_nested_new_lines_2(plugin):
     )
 )
 """
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD (only other operators on the line after closing parenthesis)
@@ -738,7 +734,7 @@ def test_nested_new_lines_3(plugin):
     )
 )
 """
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # BAD (another tuple on the line after closing parenthesis)
@@ -771,7 +767,7 @@ S: SUCCESS
     "!: ALLOW CONCURRENT\n" if concurrent else "",
 )
 '''
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD
@@ -786,7 +782,7 @@ def test_indentation_after_multi_line_string_in_block(plugin):
         "!: ALLOW CONCURRENT\n" if concurrent else "",
     )
 '''
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD
@@ -794,21 +790,22 @@ def test_method_chaining(plugin):
     s = """foo.bar(
     baz
 ).foobar()"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 def test_empty(plugin):
     s = "\n    \n    \n"
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 @pytest.mark.parametrize("path", (
     path
+    for directory in ("tests", "flake8_picky_parentheses")
     for path in (
-        Path(__file__).parent / ".." / "flake8_picky_parentheses"
-    ).iterdir()
+        Path(__file__).parent / ".." / directory
+    ).rglob("*.py")
     if path.is_file()
 ))
 def test_run_on_ourself(plugin, path):
     s = path.read_text()
-    assert not plugin(s)
+    assert no_lint(plugin(s))

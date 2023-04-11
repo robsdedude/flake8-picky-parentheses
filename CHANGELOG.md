@@ -3,6 +3,8 @@ Changelog
 
 ## NEXT
 ***
+**⭐ New**
+* Separate PAR101 codes into PAR101, PAR102, PAR103, PAR104 ([#30](https://github.com/robsdedude/flake8-picky-parentheses/pull/30); contribution by cyyc1)
 
 
 ## 0.4.0

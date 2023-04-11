@@ -61,8 +61,10 @@ These are the error codes which you can get using this plugin:
 | [`PAR002`](#par002) | Parenteheses used for tuple unpacking                                  |
 |                     |                                                                        |
 | [`PAR1xx`](#par1xx) | [Group] (Opinioinated) parentheses, brackets, braces not well-alinged  |
-| [`PAR101`](#par101) | Opening bracket at the end the line, closing bracket not on a new line |
-| [`PAR102`](#par102) | Closing bracket on a new line, but indentation missmatch               |
+| [`PAR101`](#par101) | Opening bracket is last, but closing is not on new line                |
+| [`PAR102`](#par102) | Closing bracket has different indentation than the line with the opening bracket |
+| [`PAR103`](#par103) | Consecutive opening brackets at the end of the line must have consecutive closing brackets. |
+| [`PAR104`](#par104) | Only operators and comments are allowed after a closing bracket on a new line |
 
 ### `PAR0xx`
 These are the error codes for the redundant parentheses checker.
@@ -139,6 +141,39 @@ a = [
     1, 2,
     3, 4
 ]
+```
+
+#### `PAR103`
+It means that consecutive opening brackets at the end of a line must have
+consecutive closing brackets.
+```python
+# BAD
+answer = func((
+    1, 2, 3, 4, 5,
+    )
+)
+
+# GOOD
+answer = func((
+    1, 2, 3, 4, 5,
+))
+```
+
+#### `PAR104`
+Only operators and comments are allowed after a closing bracket on a new line.
+```python
+# BAD
+a = func(
+    1, 2, 3, 4, 5
+) + 6
+
+# GOOD
+a = (
+    func(
+        1, 2, 3, 4, 5
+    )
+    + 6
+)
 ```
 
 
