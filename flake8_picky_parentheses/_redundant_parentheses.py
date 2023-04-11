@@ -41,7 +41,7 @@ class LogicalLine:
         self,
         line: str,
         line_offset: int,
-        tokens: t.Tuple[tokenize.TokenInfo] = None,
+        tokens: t.Optional[t.Tuple[tokenize.TokenInfo]] = None,
         column_offset: int = 0
     ):
         self.line = line
