@@ -38,6 +38,12 @@ def plugin(request):
     return run
 
 
+def test_does_not_care_about_redundant_parentheses(plugin):
+    s = """a = (1)
+    """
+    assert not plugin(s)
+
+
 # GOOD (use parentheses for line continuation)
 def test_parentheses_in_if_on_new_line(plugin):
     s = """if (
