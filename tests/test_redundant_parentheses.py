@@ -3,16 +3,28 @@ from pathlib import Path
 import re
 import sys
 import tokenize
-from typing import Set
+from typing import (
+    Callable,
+    List,
+    Tuple,
+    TypeVar,
+)
 
 import pytest
 
 from flake8_picky_parentheses import PluginRedundantParentheses
 
+from ._common import (
+    lint_codes,
+    no_lint,
+)
+
+T = TypeVar("T")
+
 
 @pytest.fixture
 def plugin():
-    def run(s: str) -> Set[str]:
+    def run(s: str) -> List[str]:
         lines = s.splitlines(keepends=True)
 
         line_iter = iter(lines)
@@ -20,13 +32,15 @@ def plugin():
         tree = ast.parse(s)
         plugin_ = PluginRedundantParentheses(tree, file_tokens, lines)
         problems = plugin_.run()
-        return {f"{line}:{col + 1} {msg}" for line, col, msg, _ in problems}
+        return [f"{line}:{col + 1} {msg}" for line, col, msg, _ in problems]
 
     return run
 
 
-def test_foo(plugin):
-    assert plugin("a = (1)\n")
+def test_basic_assignment(plugin):
+    s = """a = (1)
+"""
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 def _ws_generator():
@@ -37,35 +51,35 @@ def test_multi_line_condition(plugin):
     s = """if (foo
             == bar):
         ...
-    """
-    assert not plugin(s)
+"""
+    assert no_lint(plugin(s))
 
 
 # GOOD (use parentheses for tuple literal)
 def test_tuple_literal_1(plugin):
     s = """a = ("a",)
-    """
-    assert not plugin(s)
+"""
+    assert no_lint(plugin(s))
 
 
 # GOOD (use parentheses for tuple literal)
 def test_tuple_literal_2(plugin):
     s = """a = ("a", "b")
-    """
-    assert not plugin(s)
+"""
+    assert no_lint(plugin(s))
 
 
 # GOOD (use parentheses for tuple literal)
 def test_tuple_literal_3(plugin):
     s = """a = (\\
     "a", "b")
-    """
-    assert not plugin(s)
+"""
+    assert no_lint(plugin(s))
 
 
 def test_tuple_literal_4(plugin):
     s = """((a,))
-    """
+"""
     res = plugin(s)
     assert len(res) == 1
     assert next(iter(res)).startswith("1:1 ")
@@ -74,14 +88,14 @@ def test_tuple_literal_4(plugin):
 # GOOD (parens for tuple literal are optional)
 def test_parens_for_tuple_literal(plugin):
     s = """(a,)  # GOOD
-    """
-    assert not plugin(s)
+"""
+    assert no_lint(plugin(s))
 
 
 def test_mixed_with_tuple_literal_5(plugin):
     s = """(1 + 2)  # BAD
 (a,)  # GOOD
-    """
+"""
     res = plugin(s)
     assert len(res) == 1
     assert next(iter(res)).startswith("1:1 ")
@@ -90,7 +104,7 @@ def test_mixed_with_tuple_literal_5(plugin):
 def test_mixed_with_tuple_literal_6(plugin):
     s = """(a,)  # GOOD
 (1 + 2)  # BAD
-    """
+"""
     res = plugin(s)
     assert len(res) == 1
     assert next(iter(res)).startswith("2:1 ")
@@ -99,8 +113,8 @@ def test_mixed_with_tuple_literal_6(plugin):
 # GOOD (use parentheses for tuple literal)
 def test_nested_tuple_literal_1(plugin):
     s = """a = ("a", ("b", "c"))
-    """
-    assert not plugin(s)
+"""
+    assert no_lint(plugin(s))
 
 
 # BAD (redundant parentheses around the whole expression)
@@ -114,7 +128,7 @@ def test_nested_tuple_literal_2(plugin):
 # BAD (one pair of parentheses for tuple literal is enough)
 def test_multi_parens_tuple_literal_1(plugin):
     s = """a = (("a", "b"))
-    """
+"""
     res = plugin(s)
     assert len(res) == 1
     assert next(iter(res)).startswith("1:5 ")
@@ -125,7 +139,7 @@ def test_multi_parens_tuple_literal_2(plugin):
     s = """a = ((
         "a", "b"
     ))
-    """
+"""
     res = plugin(s)
     assert len(res) == 1
     assert next(iter(res)).startswith("1:5 ")
@@ -134,28 +148,28 @@ def test_multi_parens_tuple_literal_2(plugin):
 # GOOD (parentheses for tuple literal are optional)
 def test_tuple_literal_optional_1(plugin):
     s = """a = "a",
-    """
-    assert not plugin(s)
+"""
+    assert no_lint(plugin(s))
 
 
 # GOOD (parentheses for tuple literal are optional)
 def test_tuple_literal_optional_2(plugin):
     s = """a = "a", "b"
-    """
-    assert not plugin(s)
+"""
+    assert no_lint(plugin(s))
 
 
 # GOOD (parentheses for tuple literal are optional)
 def test_tuple_literal_optional_3(plugin):
     s = """"a", (1, 2)"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD (parentheses for tuple literal are optional)
 def test_tuple_literal_unpacking(plugin):
     s = """a, b = "a", "b"
 c = ((d + e))
-    """
+"""
     res = plugin(s)
     assert len(res) == 1
 
@@ -165,7 +179,7 @@ def test_ugly_multiline_unpacking(plugin):
     s = """(
 a, b\\
 ) = 1, 2"""
-    assert len(plugin(s)) == 1
+    assert lint_codes(plugin(s), ["PAR002"])
 
 
 # GOOD (unpacking with line break)
@@ -173,7 +187,7 @@ def test_multiline_unpacking_implicit_tuple_literal(plugin):
     s = """(
 a, b
 ) = 1, 2"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD (unpacking with line break)
@@ -181,86 +195,86 @@ def test_multiline_unpacking_explicit_tuple_literal(plugin):
     s = """(
 a, b
 ) = (1, 2)"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD (parentheses for tuple literal are optional)
 def test_tuple_literal_unpacking_in_if(plugin):
     s = """if foo:
         a, b = "a", "b"
-    """
-    assert len(plugin(s)) == 0
+"""
+    assert no_lint(plugin(s))
 
 
 # BAD (parentheses for tuple literal are optional)
 def test_unpacking_in_if_redundant_parens_around_condition(plugin):
     s = """if (foo):
         a, b = "a", "b"
-    """
-    assert len(plugin(s)) == 1
+"""
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 # GOOD (parentheses are redundant, but can help readability)
 def test_bin_op_example_1(plugin):
     s = """a = (1 + 2) % 3
-    """
-    assert not plugin(s)
+"""
+    assert no_lint(plugin(s))
 
 
 # GOOD (parentheses are necessary)
 def test_bin_op_example_2(plugin):
     s = """a = 1 + (2 % 3)
-    """
-    assert not plugin(s)
+"""
+    assert no_lint(plugin(s))
 
 
 # GOOD (parentheses might be redundant, but can help readability)
 def test_bin_op_example_3(plugin):
     s = """a = 1 + (2 and 3)
-    """
-    assert not plugin(s)
+"""
+    assert no_lint(plugin(s))
 
 
 # GOOD (parentheses might be redundant, but can help readability)
 def test_bin_op_example_4(plugin):
     s = """a = (1 + 2) and 3
-    """
-    assert not plugin(s)
+"""
+    assert no_lint(plugin(s))
 
 
 # GOOD (parentheses might be redundant, but can help readability)
 def test_bin_op_example_5(plugin):
     s = """a = 1 and (2 + 3)
-    """
-    assert not plugin(s)
+"""
+    assert no_lint(plugin(s))
 
 
 # GOOD (parentheses might be redundant, but can help readability)
 def test_bin_op_example_6(plugin):
     s = """a = (1 and 2) + 3
-    """
-    assert not plugin(s)
+"""
+    assert no_lint(plugin(s))
 
 
 # GOOD (parentheses are redundant, but can help readability)
 def test_bin_op_example_7(plugin):
     s = """a = foo or (bar and baz)
-    """
-    assert not plugin(s)
+"""
+    assert no_lint(plugin(s))
 
 
 # GOOD with ugly spaces (parentheses are redundant, but can help readability)
 def test_bin_op_example_8(plugin):
     s = """a = (   1 /   2)   /3
-    """
-    assert not plugin(s)
+"""
+    assert no_lint(plugin(s))
 
 
 # BAD (parentheses are redundant and can't help readability)
 def test_bin_op_example_unnecessary_parens(plugin):
     s = """a = (foo or bar and baz)
-    """
-    assert len(plugin(s)) == 1
+"""
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 # GOOD (parentheses are redundant and can help readability)
@@ -269,8 +283,8 @@ def test_multi_line_bin_op_example_unnecessary_parens(plugin):
     # I need to make a point here.
     s = """a = foo + (\\
 bar * baz)
-    """
-    assert not plugin(s)
+"""
+    assert no_lint(plugin(s))
 
 
 @pytest.mark.parametrize("flake", [True, False])
@@ -291,7 +305,7 @@ def foo():
 
 def test_only_comment(plugin):
     s = """# ()"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 @pytest.mark.parametrize(("string_start", "string_end"), (
@@ -307,7 +321,7 @@ def test_in_string(plugin, string_start, string_end, nest):
     s = f"{string_start}(){string_end}"
     if nest:
         s = f"def foo():\n    {s}"
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 @pytest.mark.parametrize(("string_start", "string_end"), (
@@ -321,7 +335,7 @@ def foo():
     ()
     {string_end}
 """
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # BAD (don't use parentheses for unpacking)
@@ -331,21 +345,21 @@ def foo():
 @pytest.mark.parametrize("ws4", _ws_generator())
 def test_unpacking(plugin, ws1, ws2, ws3, ws4):
     s = f"""({ws1}a{ws2},{ws3}){ws4}= ["a"]
-    """
-    assert len(plugin(s)) == 1
+"""
+    assert lint_codes(plugin(s), ["PAR002"])
 
 
 def test_simple_unpacking(plugin):
     s = """(a,) = ["a"]"""
-    assert len(plugin(s)) == 1
+    assert lint_codes(plugin(s), ["PAR002"])
 
 
 # BAD (don't use parentheses for unpacking, even with leading white space)
 @pytest.mark.parametrize("ws", _ws_generator())
 def test_unpacking_with_white_space(plugin, ws):
     s = f"""({ws}a,)=["a"]
-    """
-    assert len(plugin(s)) == 1
+"""
+    assert lint_codes(plugin(s), ["PAR002"])
 
 
 # BAD (don't use parentheses when already using \ for line continuation)
@@ -353,8 +367,8 @@ def test_call_chain_escaped_line_break_1(plugin):
     s = """(\\
 foo\\
 ).bar(baz)
-    """
-    assert len(plugin(s)) == 1
+"""
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 # BAD (don't use parentheses when already using \ for line continuation)
@@ -362,75 +376,75 @@ def test_call_chain_escaped_line_break_2(plugin):
     s = """(   \\
     foo   \\
     )  .  bar   (   baz   )
-    """
+"""
     if sys.version_info >= (3, 10):
-        assert not plugin(s)
+        assert no_lint(plugin(s))
     else:
-        assert len(plugin(s)) == 1
+        assert lint_codes(plugin(s), ["PAR001"])
 
 
 # BAD (redundant parentheses)
 def test_parentheses_delimit_names(plugin):
     s = """(a)and(b)
-    """
-    assert len(plugin(s)) == 2
+"""
+    assert lint_codes(plugin(s), ["PAR001", "PAR001"])
 
 
 # BAD (don't use parentheses for one-line expressions)
 def test_one_line_condition(plugin):
     s = """if (foo == bar):
         a + b
-    """
-    assert len(plugin(s)) == 1
+"""
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 # BAD (don't use parentheses for one-line expressions)
 def test_one_line_expression_1(plugin):
     s = """a = (foo == bar)
-    """
-    assert len(plugin(s)) == 1
+"""
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 # BAD (don't use parentheses for one-line expressions)
 def test_one_line_expression_2(plugin):
     s = """a = (foo.bar())
-    """
-    assert len(plugin(s)) == 1
+"""
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 # GOOD (function call)
 def test_function_call(plugin):
     s = """foo("a")
-    """
-    assert not plugin(s)
+"""
+    assert no_lint(plugin(s))
 
 
 # BAD (function call with extra parentheses)
 def test_function_call_redundant_parens_1(plugin):
     s = """foo(("a"))
-    """
-    assert len(plugin(s)) == 1
+"""
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 # BAD (function call with extra parentheses around expression)
 def test_function_call_redundant_parens_2(plugin):
     s = """foo((1 + 2))
-    """
-    assert len(plugin(s)) == 1
+"""
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 # BAD
 def test_function_call_redundant_parens_3(plugin):
     s = """foo((1 + 2), 3)
-    """
-    assert len(plugin(s)) == 1
+"""
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 # GOOD
 def test_function_call_redundant_parens_for_readability(plugin):
     s = """foo((1 + 2) + 3, 4)
-    """
-    assert not plugin(s)
+"""
+    assert no_lint(plugin(s))
 
 
 @pytest.mark.parametrize(
@@ -441,7 +455,7 @@ def test_decorator(plugin, body):
 @foo
 {body}
 """
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 @pytest.mark.parametrize(
@@ -454,7 +468,10 @@ def test_decorator_call(plugin, body, flake):
 @foo({arg})
 {body}
 """
-    assert len(plugin(s)) == flake
+    if flake:
+        assert lint_codes(plugin(s), ["PAR001"])
+    else:
+        assert no_lint(plugin(s))
 
 
 # BAD
@@ -465,31 +482,31 @@ def test_function_call_unnecessary_multi_line_parens(plugin):
        + 5)
 )
 """
-    res = plugin(s)
-    assert len(res) == 1
-    assert next(iter(res)).startswith("3:5 ")
+    lints = plugin(s)
+    assert lint_codes(lints, ["PAR001"])
+    assert lints[0].startswith("3:5 ")
 
 
 # GOOD (function call with tuple literal)
 def test_function_call_with_tuple(plugin):
     s = """foo(("a",))
-    """
-    assert not plugin(s)
+"""
+    assert no_lint(plugin(s))
 
 
 # GOOD (method call)
 def test_method_call(plugin):
     s = """foo.bar("a")
-    """
-    assert not plugin(s)
+"""
+    assert no_lint(plugin(s))
 
 
 # GOOD (use parentheses for line continuation)
 def test_multi_line_parens_1(plugin):
     s = """a = ("abc"
          "def")
-    """
-    assert not plugin(s)
+"""
+    assert no_lint(plugin(s))
 
 
 # GOOD (use parentheses for line continuation)
@@ -499,104 +516,103 @@ def test_multi_line_parens_2(plugin):
         "def"
 )
 """
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # BAD (parentheses are redundant and can't help readability)
 def test_unnecessary_parens(plugin):
     s = """a = ("a")
-    """
-    assert len(plugin(s)) == 1
+"""
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 # BAD (one pair of parenthesis is enough)
 def test_bin_op_example_double_parens_1(plugin):
     s = """a = 1 * ((2 + 3))
-    """
-    res = plugin(s)
-    assert len(res) == 1
-    msg = next(iter(res))
-    assert msg.startswith("1:9 ") or msg.startswith("1:10 ")
+"""
+    lints = plugin(s)
+    assert lint_codes(lints, ["PAR001"])
+    assert lints[0].startswith("1:9 ") or lints[0].startswith("1:10 ")
 
 
 # BAD (one pair of parenthesis is enough)
 def test_bin_op_example_double_parens_2(plugin):
     s = """a = ((1 * 2)) + 3
-    """
-    assert len(plugin(s)) == 1
+"""
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 # BAD (one pair of parenthesis is enough)
 def test_bin_op_example_double_parens_3(plugin):
     s = """a = 1 + ((2 * 3))
-    """
-    assert len(plugin(s)) == 1
+"""
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 # BAD (one pair of parenthesis is enough)
 def test_bin_op_example_double_parens_4(plugin):
     s = """a = ((1 + 2)) * 3
-    """
-    assert len(plugin(s)) == 1
+"""
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 # BAD (redundant parenthesis around 1)
 def test_redundant_parens_around_tuple(plugin):
     s = """a = ((1),)
-    """
-    assert len(plugin(s)) == 1
+"""
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 # GOOD (generator comprehension)
 def test_generator_comprehension(plugin):
     s = """a = (foo for foo in bar)
-    """
-    assert not plugin(s)
+"""
+    assert no_lint(plugin(s))
 
 
 # BAD
 def test_unary_op_example_1(plugin):
     s = """a = not (b)
-    """
-    assert len(plugin(s)) == 1
+"""
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 # BAD
 def test_unary_op_example_2(plugin):
     s = """a = (not b)
-    """
-    assert len(plugin(s)) == 1
+"""
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 # GOOD (parentheses might be redundant, but can help readability)
 def test_mixed_op_example_1(plugin):
     s = """a = not (1 + 2)
-    """
-    assert not plugin(s)
+"""
+    assert no_lint(plugin(s))
 
 
 # GOOD (parentheses might be redundant, but can help readability)
 def test_mixed_op_example_2(plugin):
     s = """a = (not 1) + 2
-    """
-    assert not plugin(s)
+"""
+    assert no_lint(plugin(s))
 
 
 # GOOD (parentheses might be redundant, but can help readability)
 def test_mixed_op_example_3(plugin):
     s = """a = not 1 + 2
-    """
-    assert not plugin(s)
+"""
+    assert no_lint(plugin(s))
 
 
 # BAD (two redundant parentheses)
 def test_wildly_nested_parens(plugin):
     s = """a = 1 + (2 + (3) + (4))
-    """
-    res = plugin(s)
-    assert len(res) == 2
-    positions = set(msg.split(" ")[0] for msg in res)
-    assert positions == {"1:14", "1:20"}
+"""
+    lints = plugin(s)
+    assert lint_codes(lints, ["PAR001", "PAR001"])
+    positions = sorted(msg.split(" ")[0] for msg in lints)
+    assert positions == ["1:14", "1:20"]
 
 
 def test_mixture_of_good_and_bad(plugin):
@@ -604,21 +620,21 @@ def test_mixture_of_good_and_bad(plugin):
 b = 1 + (2) + 3  # BAD
 c = 1 + (2 + 3)  # GOOD
 d = (1) + (2) + 3  # BAD
-    """
-    res = plugin(s)
-    assert len(res) == 3
-    positions = set(msg.split(" ")[0] for msg in res)
-    assert positions == {"2:9", "4:5", "4:11"}
+"""
+    lints = plugin(s)
+    assert lint_codes(lints, ["PAR001", "PAR001", "PAR001"])
+    positions = sorted(msg.split(" ")[0] for msg in lints)
+    assert positions == ["2:9", "4:11", "4:5"]
 
 
-@pytest.mark.parametrize(("expr", "problems"), (
-    ("a = 1 + 2 if foo else 3", 0),
-    ("a = (1 + 2) if foo else 3", 0),
-    ("a = 1 + (2 if foo else 3)", 0),
-    ("a = (2 if foo else 3)", 1),
+@pytest.mark.parametrize(("expr", "codes"), (
+    ("a = 1 + 2 if foo else 3", []),
+    ("a = (1 + 2) if foo else 3", []),
+    ("a = 1 + (2 if foo else 3)", []),
+    ("a = (2 if foo else 3)", ["PAR001"]),
 ))
-def test_if_expr(plugin, expr, problems):
-    assert len(plugin(expr)) == problems
+def test_if_expr(plugin, expr, codes):
+    assert lint_codes(plugin(expr), codes)
 
 
 BIN_OPS = (
@@ -629,37 +645,37 @@ BIN_OPS = (
 UNARY_OPS = ("not", "+", "-", "~", "await")
 
 
-def _id(s):
+def _id(s: T) -> T:
     return s
 
 
-def _make_multi_line(s):
+def _make_multi_line(s: str) -> str:
     assert s.startswith("foo = ")
     return f"foo = (\n    {s[6:]}\n)"
 
 
-def _make_multi_line_extra_parens_1(s):
+def _make_multi_line_extra_parens_1(s: str) -> str:
     assert s.startswith("foo = ")
     return f"foo = ((\n    {s[6:]}\n))"
 
 
-def _make_multi_line_extra_parens_2(s):
+def _make_multi_line_extra_parens_2(s: str) -> str:
     assert s.startswith("foo = ")
     return f"foo = (\n    ({s[6:]})\n)"
 
 
-def _make_multi_line_extra_parens_3(s):
+def _make_multi_line_extra_parens_3(s: str) -> str:
     assert s.startswith("foo = ")
     return f"foo = (\n(\n{s[6:]}\n)\n)"
 
 
-MULTI_LINE_ALTERATION = (
+MULTI_LINE_ALTERATION: Tuple[Tuple[Callable[[str], str], List[str]], ...] = (
     # (function, makes it bad)
-    (_id, 0),
-    (_make_multi_line, 0),
-    (_make_multi_line_extra_parens_1, 1),
-    (_make_multi_line_extra_parens_2, 1),
-    (_make_multi_line_extra_parens_3, 1),
+    (_id, []),
+    (_make_multi_line, []),
+    (_make_multi_line_extra_parens_1, ["PAR001"]),
+    (_make_multi_line_extra_parens_2, ["PAR001"]),
+    (_make_multi_line_extra_parens_3, ["PAR001"]),
 )
 
 
@@ -669,7 +685,7 @@ def test_superfluous_parentheses_after_unary_op(plugin, op, alteration):
     alteration_func, introduced_flakes = alteration
     s = f"foo = {op} (bar) \n"
     s = alteration_func(s)
-    assert len(plugin(s)) == 1 + introduced_flakes
+    assert lint_codes(plugin(s), ["PAR001"] + introduced_flakes)
 
 
 def test_double_line_continuation(plugin):
@@ -679,7 +695,7 @@ def test_double_line_continuation(plugin):
 )
 )
 """
-    assert len(plugin(s)) == 1
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 @pytest.mark.parametrize("op", UNARY_OPS)
@@ -695,7 +711,7 @@ def test_superfluous_but_helping_parentheses_after_mono_op(
         expression = f"foo {op2} bar"
     s = f"foo = {op} ({expression})"
     s = alteration_func(s)
-    assert len(plugin(s)) == introduced_flakes
+    assert lint_codes(plugin(s), introduced_flakes)
 
 
 @pytest.mark.parametrize("op", BIN_OPS)
@@ -704,7 +720,7 @@ def test_superfluous_parentheses_around_bin_op(plugin, op, alteration):
     alteration_func, introduced_flakes = alteration
     s = f"foo = {{a: (foo {op} bar)}} \n"
     s = alteration_func(s)
-    assert len(plugin(s)) == 1 + introduced_flakes
+    assert lint_codes(plugin(s), ["PAR001"] + introduced_flakes)
 
 
 @pytest.mark.parametrize("op1", BIN_OPS)
@@ -721,7 +737,7 @@ def test_superfluous_but_helping_parentheses_around_bin_op(
     else:
         s = f"foo = baz {op2} {parent_expr}"
     s = alteration_func(s)
-    assert len(plugin(s)) == introduced_flakes
+    assert lint_codes(plugin(s), introduced_flakes)
 
 
 @pytest.mark.parametrize("op1", BIN_OPS)
@@ -738,7 +754,7 @@ def test_double_superfluous_but_helping_parentheses_around_bin_op(
     else:
         s = f"foo = baz {op2} {parent_expr} \n"
     s = alteration_func(s)
-    assert len(plugin(s)) == 1 + introduced_flakes
+    assert lint_codes(plugin(s), ["PAR001"] + introduced_flakes)
 
 
 def _slice_in_tuple(s, tuple_, unpack):
@@ -763,7 +779,7 @@ def test_parens_in_slice_1(plugin, tuple_, unpack):
     s = """{}foo[i:(i + 1)]{}
 """
     s = _slice_in_tuple(s, tuple_, unpack)
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD (redundant in slice, but help readability)
@@ -778,7 +794,7 @@ def test_parens_in_slice_2(plugin, tuple_, unpack):
     s = """{}foo[(-1):i]{}
 """
     s = _slice_in_tuple(s, tuple_, unpack)
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD (redundant in slice, but help readability)
@@ -793,7 +809,7 @@ def test_parens_in_slice_2_no_end(plugin, tuple_, unpack):
     s = """{}foo[(-1):]{}
 """
     s = _slice_in_tuple(s, tuple_, unpack)
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD (redundant in slice but help readability)
@@ -808,7 +824,7 @@ def test_parens_in_slice_3(plugin, tuple_, unpack):
     s = """{}foo[i:(-1)]{}
 """
     s = _slice_in_tuple(s, tuple_, unpack)
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD (redundant in slice but help readability)
@@ -823,7 +839,7 @@ def test_parens_in_slice_3_no_start(plugin, tuple_, unpack):
     s = """{}foo[:(-1)]{}
 """
     s = _slice_in_tuple(s, tuple_, unpack)
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD ()
@@ -838,7 +854,7 @@ def test_parens_in_slice_4(plugin, tuple_, unpack):
     s = """{}foo[i:-1]{}
 """
     s = _slice_in_tuple(s, tuple_, unpack)
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # BAD (redundant in slice and don't help readability)
@@ -853,7 +869,7 @@ def test_parens_in_slice_5(plugin, tuple_, unpack):
     s = """{}foo[(0):i]{}
 """
     s = _slice_in_tuple(s, tuple_, unpack)
-    assert len(plugin(s)) == 1
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 # GOOD (redundant in slice, but help readability)
@@ -868,7 +884,7 @@ def test_parens_in_slice_6(plugin, tuple_, unpack):
     s = """{}foo[i: (i + 1) ]{}
 """
     s = _slice_in_tuple(s, tuple_, unpack)
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD (redundant in slice, but help readability)
@@ -883,7 +899,7 @@ def test_parens_in_slice_7(plugin, tuple_, unpack):
     s = """{}foo[i:( i + 1 )]{}
 """
     s = _slice_in_tuple(s, tuple_, unpack)
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # BAD (on pair would've been enough)
@@ -898,7 +914,7 @@ def test_parens_in_slice_8(plugin, tuple_, unpack):
     s = """{}foo[((i - 1)):i]{}
 """
     s = _slice_in_tuple(s, tuple_, unpack)
-    assert plugin(s)
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 # GOOD (redundant in slice but help readability)
@@ -913,7 +929,7 @@ def test_parens_in_slice_9(plugin, tuple_, unpack):
     s = """{}foo[:i:(-1)]{}
 """
     s = _slice_in_tuple(s, tuple_, unpack)
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD (redundant in slice but help readability)
@@ -930,12 +946,7 @@ def foo():
     a = {}a[s:(e + 1)]{}
 """
     s = _slice_in_tuple(s, tuple_, unpack)
-    assert not plugin(s)
-
-
-def test_(plugin):
-    s = "a, b[(-1):]"
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD (redundant in comprehension, but help readability of multi-line if)
@@ -951,7 +962,7 @@ def test_multi_line_if_with_parens_in_comprehension(plugin,
         or some_other_super_mega_looooooooooooooooooooooong_thing)
 {comprehension_type[1]}
 """
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # BAD (redundant in comprehension and don't help readability of single-line if)
@@ -968,7 +979,7 @@ def test_single_line_if_with_parens_in_comprehension(
     if ({expr})
 {comprehension_type[1]}
 """
-    assert len(plugin(s)) == 1
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 # BAD (redundant in comprehension and don't help readability of single-line if)
@@ -986,7 +997,7 @@ def test_practically_single_line_if_with_parens_in_comprehension(
     )
 {comprehension_type[1]}
 """
-    assert len(plugin(s)) == 1
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 # GOOD (redundant in comprehension, but help readability of multi-line if)
@@ -1005,7 +1016,7 @@ def test_continuation_if_with_parens_in_comprehension(
     )
 {comprehension_type[1]}
 """
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD (redundant in comprehension, but help readability of multi-line in)
@@ -1020,7 +1031,7 @@ def test_multi_line_in_with_parens_in_comprehension(plugin,
               - set(b))
 {comprehension_type[1]}
 """
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # BAD (redundant in comprehension and don't help readability of single-line in)
@@ -1036,7 +1047,7 @@ def test_single_line_in_with_parens_in_comprehension(
     for x in ({expr})
 {comprehension_type[1]}
 """
-    assert len(plugin(s)) == 1
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 # BAD (redundant in comprehension and don't help readability of single-line in)
@@ -1053,7 +1064,7 @@ def test_practically_single_line_in_with_parens_in_comprehension(
     )
 {comprehension_type[1]}
 """
-    assert len(plugin(s)) == 1
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 # GOOD
@@ -1071,7 +1082,7 @@ def test_continuation_in_with_parens_in_comprehension(
     )
 {comprehension_type[1]}
 """
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 def test_empty(plugin):
@@ -1079,7 +1090,7 @@ def test_empty(plugin):
 
 
 """
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 @pytest.mark.parametrize("beginning_ws", (True, False))
@@ -1092,7 +1103,7 @@ def bar():
 """
     if beginning_ws:
         s = "\n" + s
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 # GOOD
@@ -1107,7 +1118,7 @@ def test_function_call_with_empty_line_in_method(plugin):
 
         )
 """
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 EXCEPT_STATEMENTS = (
@@ -1144,7 +1155,11 @@ def test_try_except(plugin, mistake_pos, except_):
     if mistake_pos:
         substitutes[mistake_pos - 1] = "a = (1)"
     s = s % tuple(substitutes)
-    assert len(plugin(s)) == bool(mistake_pos)
+    lints = plugin(s)
+    if mistake_pos:
+        assert lint_codes(lints, ["PAR001"])
+    else:
+        assert no_lint(lints)
 
 
 @pytest.mark.parametrize("mistake_pos", (0, 1, 2, 3))
@@ -1161,7 +1176,11 @@ finally:
     if mistake_pos:
         substitutes[mistake_pos - 1] = "a = (1)"
     s = s % tuple(substitutes)
-    assert len(plugin(s)) == bool(mistake_pos)
+    lints = plugin(s)
+    if mistake_pos:
+        assert lint_codes(lints, ["PAR001"])
+    else:
+        assert no_lint(lints)
 
 
 @pytest.mark.parametrize("mistake_pos", (0, 1, 2, 3))
@@ -1178,7 +1197,11 @@ else:
     if mistake_pos:
         substitutes[mistake_pos - 1] = "a = (1)"
     s = s % tuple(substitutes)
-    assert len(plugin(s)) == bool(mistake_pos)
+    lints = plugin(s)
+    if mistake_pos:
+        assert lint_codes(lints, ["PAR001"])
+    else:
+        assert no_lint(lints)
 
 
 @pytest.mark.parametrize("mistake_pos", (0, 1, 2, 3))
@@ -1197,7 +1220,11 @@ finally:
     if mistake_pos:
         substitutes[mistake_pos - 1] = "a = (1)"
     s = s % tuple(substitutes)
-    assert len(plugin(s)) == bool(mistake_pos)
+    lints = plugin(s)
+    if mistake_pos:
+        assert lint_codes(lints, ["PAR001"])
+    else:
+        assert no_lint(lints)
 
 
 @pytest.mark.parametrize("except_", (
@@ -1211,7 +1238,7 @@ try:
 %s
     a = 2
 """ % except_
-    assert len(plugin(s)) == 1
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 @pytest.mark.parametrize(
@@ -1233,7 +1260,11 @@ def test_if_elif_else(plugin, mistake_pos, elif_count, else_):
     if mistake_pos:
         substitutes[mistake_pos - 1] = "(foo)"
     s = s % tuple(substitutes)
-    assert len(plugin(s)) == bool(mistake_pos)
+    lints = plugin(s)
+    if mistake_pos:
+        assert lint_codes(lints, ["PAR001"])
+    else:
+        assert no_lint(lints)
 
 
 def test_multi_line_if(plugin):
@@ -1248,7 +1279,7 @@ elif (
 ):
     bar
 """
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 @pytest.mark.skipif(sys.version_info < (3, 10), reason="Python 3.10+ only")
@@ -1305,7 +1336,7 @@ def test_match_2_case(plugin):
     case b:
         ...
 """
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 def test_multi_line_keyword_in_call(plugin):
@@ -1315,7 +1346,7 @@ def test_multi_line_keyword_in_call(plugin):
         c=(a
            is b)
     )"""
-    assert len(plugin(s)) == 0
+    assert no_lint(plugin(s))
 
 
 @pytest.mark.parametrize("expr", ("a", "a is b"))
@@ -1325,7 +1356,7 @@ def test_single_line_keyword_in_call(plugin, expr):
         a=b,
         c=({expr})
     )"""
-    assert len(plugin(s)) == 1
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 @pytest.mark.parametrize("expr", ("a", "a is b"))
@@ -1336,7 +1367,7 @@ def test_practically_single_line_keyword_in_call(plugin, expr):
         c=({expr}
         )
     )"""
-    assert len(plugin(s)) == 1
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 @pytest.mark.parametrize("expr", ("a", "a is b"))
@@ -1348,7 +1379,7 @@ def test_continuation_keyword_in_call(plugin, expr):
             {expr}
         )
     )"""
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 def test_multi_line_keyword_in_decorator_call(plugin):
@@ -1361,7 +1392,7 @@ def test_multi_line_keyword_in_decorator_call(plugin):
 def foo():
     pass
 """
-    assert len(plugin(s)) == 0
+    assert no_lint(plugin(s))
 
 
 @pytest.mark.parametrize("expr", ("a", "a in b"))
@@ -1374,7 +1405,7 @@ def test_single_line_keyword_in_decorator_call(plugin, expr):
 def foo():
     pass
 """
-    assert len(plugin(s)) == 1
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 @pytest.mark.parametrize("expr", ("a", "a in b"))
@@ -1388,7 +1419,7 @@ def test_practically_single_line_keyword_in_decorator_call(plugin, expr):
 def foo():
     pass
 """
-    assert len(plugin(s)) == 1
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 @pytest.mark.parametrize("expr", ("a", "a in b"))
@@ -1403,7 +1434,7 @@ def test_continuation_keyword_in_decorator_call(plugin, expr):
 def foo():
     pass
 """
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 def test_multi_line_keyword_in_def(plugin):
@@ -1412,7 +1443,7 @@ def foo(a=(1
            + 2)):
     bar
 """
-    assert len(plugin(s)) == 0
+    assert no_lint(plugin(s))
 
 
 def test_multi_line_keyword_with_annotation_in_def(plugin):
@@ -1421,7 +1452,7 @@ def foo(a: int = (1
                   + 2)):
     bar
 """
-    assert len(plugin(s)) == 0
+    assert no_lint(plugin(s))
 
 
 @pytest.mark.parametrize("type_annotation", ("", ": int "))
@@ -1431,7 +1462,7 @@ def test_single_line_keyword_in_def(plugin, type_annotation, expr):
 def foo(a{type_annotation}=({expr})):
     bar
 """
-    assert len(plugin(s)) == 1
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 @pytest.mark.parametrize("type_annotation", ("", ": int "))
@@ -1444,7 +1475,7 @@ def foo(
 ):
     bar
 """
-    assert len(plugin(s)) == 1
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 @pytest.mark.parametrize("type_annotation", ("", ": int "))
@@ -1458,19 +1489,20 @@ def foo(
 ):
     bar
 """
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 @pytest.mark.parametrize("path", (
     path
+    for directory in ("tests", "flake8_picky_parentheses")
     for path in (
-        Path(__file__).parent / ".." / "flake8_picky_parentheses"
-    ).iterdir()
+        Path(__file__).parent / ".." / directory
+    ).rglob("*.py")
     if path.is_file()
 ))
 def test_run_on_ourself(plugin, path):
     s = path.read_text()
-    assert not plugin(s)
+    assert no_lint(plugin(s))
 
 
 @pytest.mark.parametrize("mistake_pos", range(4))
@@ -1486,7 +1518,11 @@ def test_two_methods(plugin, mistake_pos):
     if mistake_pos:
         substitutes[mistake_pos - 1] = "a = (1)"
     s = s % tuple(substitutes)
-    assert len(plugin(s)) == bool(mistake_pos)
+    lints = plugin(s)
+    if mistake_pos:
+        assert lint_codes(lints, ["PAR001"])
+    else:
+        assert no_lint(lints)
 
 
 @pytest.mark.parametrize("mistake_pos", range(2))
@@ -1531,26 +1567,26 @@ def test_methods_and_if(plugin, mistake_pos, doc_str_delimiter):
 
 
 # Allow parentheses in unpacking arguments if argument
-@pytest.mark.parametrize(("args", "problems"), (
-    ("a", 1),
-    ("a or b", 0),
-    ("a + b", 0),
-    ("a if b else c", 0),
+@pytest.mark.parametrize(("args", "codes"), (
+    ("a", ["PAR001"]),
+    ("a or b", []),
+    ("a + b", []),
+    ("a if b else c", []),
 ))
-def test_args_unpacking(plugin, args, problems):
+def test_args_unpacking(plugin, args, codes):
     s = f"foo(*({args}))"
-    assert len(plugin(s)) == problems
+    assert lint_codes(plugin(s), codes)
 
 
-@pytest.mark.parametrize(("kwargs", "problems"), (
-    ("a", 1),
-    ("a or b", 0),
-    ("a + b", 0),
-    ("a if b else c", 0),
+@pytest.mark.parametrize(("kwargs", "codes"), (
+    ("a", ["PAR001"]),
+    ("a or b", []),
+    ("a + b", []),
+    ("a if b else c", []),
 ))
-def test_kwargs_unpacking(plugin, kwargs, problems):
+def test_kwargs_unpacking(plugin, kwargs, codes):
     s = f"foo(**({kwargs}))"
-    assert len(plugin(s)) == problems
+    assert lint_codes(plugin(s), codes)
 
 
 @pytest.mark.parametrize("dict_", (
@@ -1577,7 +1613,7 @@ def test_kwargs_unpacking(plugin, kwargs, problems):
 ))
 def test_multi_line_dict_value_with_parens(plugin, dict_):
     s = f"foo = {dict_}"
-    assert len(plugin(s)) == 1
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 @pytest.mark.parametrize("dict_", (
@@ -1602,4 +1638,4 @@ def test_multi_line_dict_value_with_parens(plugin, dict_):
 ))
 def test_multi_line_dict_value_without_parens(plugin, dict_):
     s = f"foo = {dict_}"
-    assert not plugin(s)
+    assert no_lint(plugin(s))
