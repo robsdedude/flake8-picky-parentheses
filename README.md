@@ -309,7 +309,7 @@ def foo(bar=(a is b)):
          + b
      )
      ```
-   Multi-line exceptions do **not** include
+   Multi-line expressions do **not** include
    ```python
    (a + b
    )
