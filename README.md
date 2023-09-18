@@ -184,14 +184,15 @@ try to remove each pair of parentheses and see if the code still compiles and
 yields the same AST (i.e., is semantically equivalent).
 If it does, a flake (lint error) is reported. However, there are two notable
 exceptions to this rule:
- 1. Parentheses for tuple literals
+ 1. Parentheses for tuple literals.
  2. A single pair or parentheses in expressions to highlight operator
     precedence.
     Even if these parentheses are redundant, they help to divide parts of
     expressions and show sequence of actions.
- 3. Parts of slices
+ 3. Parts of slices.
  4. Multi-line<sup>[1)](#footnotes)</sup> `if` and `for` parts in comprehensions.
  5. Multi-line<sup>[1)](#footnotes)</sup> keyword arguments or argument defaults.
+ 6. String concatenation over several lines in lists and tuples .
 
 
 Exception type 1:
@@ -287,6 +288,37 @@ def foo(bar=(a
 # BAD
 def foo(bar=(a is b)):
     ...
+```
+
+Exception type 6:
+
+```python
+# GOOD
+[
+    "a",
+    (
+        "b"
+        "c"
+    ),
+    "d",
+]
+
+# This helps to avoid forgetting a comma at the end of a string spanning
+# multiple lines. Compare with:
+[
+    "a",
+    "b"
+    "c"
+    "d",
+]
+# Was the comma after "b" forgotten or was the string supposed to be "bc"?
+
+# BAD
+[
+    (
+        "a" "b"
+    ),
+]
 ```
 
 ### Footnotes:

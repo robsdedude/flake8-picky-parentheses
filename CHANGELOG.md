@@ -3,6 +3,8 @@ Changelog
 
 ## NEXT
 ***
+**⭐ New**
+* Exempt parentheses around multi-line strings in tuples and lists ([#34](https://github.com/robsdedude/flake8-picky-parentheses/pull/34)).
 
 
 ## 0.5.0
@@ -14,7 +16,7 @@ Changelog
 ## 0.4.0
 ***
 **⭐ New**
-* Add support for Python 3.11 ([#28](https://github.com/robsdedude/flake8-picky-parentheses/pull/28))
+* Add support for Python 3.11 ([#28](https://github.com/robsdedude/flake8-picky-parentheses/pull/28)).
 
 
 ## 0.3.2
