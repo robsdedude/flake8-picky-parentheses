@@ -54,17 +54,17 @@ flake8 [other options] --extend-ignore='PAR1' '<path/to/your/code>'
 ## Error Codes
 These are the error codes which you can get using this plugin:
 
-| Code                | Brief Descritption                                                     |
-|---------------------|------------------------------------------------------------------------|
-| [`PAR0xx`](#par0xx) | [Group] Redundant parentheses                                          |
-| [`PAR001`](#par001) | Redundant parentheses (general)                                        |
-| [`PAR002`](#par002) | Parenteheses used for tuple unpacking                                  |
-|                     |                                                                        |
-| [`PAR1xx`](#par1xx) | [Group] (Opinioinated) parentheses, brackets, braces not well-alinged  |
-| [`PAR101`](#par101) | Opening bracket is last, but closing is not on new line                |
-| [`PAR102`](#par102) | Closing bracket has different indentation than the line with the opening bracket |
+| Code                | Brief Description                                                                           |
+|---------------------|---------------------------------------------------------------------------------------------|
+| [`PAR0xx`](#par0xx) | [Group] Redundant parentheses                                                               |
+| [`PAR001`](#par001) | Redundant parentheses (general)                                                             |
+| [`PAR002`](#par002) | Parentheses used for tuple unpacking                                                        |
+|                     |                                                                                             |
+| [`PAR1xx`](#par1xx) | [Group] (Opinionated) parentheses, brackets, braces not well-aligned                        |
+| [`PAR101`](#par101) | Opening bracket is last, but closing is not on new line                                     |
+| [`PAR102`](#par102) | Closing bracket has different indentation than the line with the opening bracket            |
 | [`PAR103`](#par103) | Consecutive opening brackets at the end of the line must have consecutive closing brackets. |
-| [`PAR104`](#par104) | Only operators and comments are allowed after a closing bracket on a new line |
+| [`PAR104`](#par104) | Only operators and comments are allowed after a closing bracket on a new line               |
 
 ### `PAR0xx`
 These are the error codes for the redundant parentheses checker.
