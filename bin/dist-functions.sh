@@ -11,7 +11,7 @@ function get_version
 
 function set_version
 {
-    sed -i 's/^version = .*/version = "'$1'"/g' flake8_picky_parentheses/_meta.py
+    sed -i 's/^version = .*/version = "'$1'"/g' src/flake8_picky_parentheses/_meta.py
 }
 
 function check_file
@@ -37,7 +37,7 @@ function set_metadata_and_setup
     ORIGINAL_VERSION=$(get_version)
     echo "Source code originally configured for package ${ORIGINAL_VERSION}"
     echo "----------------------------------------"
-    grep "version\s\+=" flake8_picky_parentheses/_meta.py
+    grep "version\s\+=" src/flake8_picky_parentheses/_meta.py
     echo "----------------------------------------"
 
     function cleanup() {
@@ -45,7 +45,7 @@ function set_metadata_and_setup
       set_version "${ORIGINAL_VERSION}"
       echo "Source code reconfigured back to original package ${ORIGINAL_VERSION}"
       echo "----------------------------------------"
-      grep "version\s\+=" flake8_picky_parentheses/_meta.py
+      grep "version\s\+=" src/flake8_picky_parentheses/_meta.py
       echo "----------------------------------------"
     }
     trap cleanup EXIT
@@ -54,7 +54,7 @@ function set_metadata_and_setup
     set_version "${VERSION}"
     echo "Source code reconfigured for package ${VERSION}"
     echo "----------------------------------------"
-    grep "version\s\+=" flake8_picky_parentheses/_meta.py
+    grep "version\s\+=" src/flake8_picky_parentheses/_meta.py
     echo "----------------------------------------"
 
     # Create source distribution
