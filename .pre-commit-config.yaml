@@ -35,7 +35,7 @@ repos:
       - id: mypy
         name: mypy static type check
         entry: mypy
-        args: [ --show-error-codes, flake8_picky_parentheses, tests ]
+        args: [ --show-error-codes, src, tests ]
         'types_or': [ python, pyi ]
         language: system
         pass_filenames: false
