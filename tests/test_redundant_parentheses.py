@@ -349,6 +349,7 @@ def test_unpacking(plugin, ws1, ws2, ws3, ws4):
     assert lint_codes(plugin(s), ["PAR002"])
 
 
+# BAD (don't use parentheses for unpacking)
 def test_simple_unpacking(plugin):
     s = """(a,) = ["a"]"""
     assert lint_codes(plugin(s), ["PAR002"])
@@ -410,6 +411,94 @@ def test_one_line_expression_2(plugin):
     s = """a = (foo.bar())
 """
     assert lint_codes(plugin(s), ["PAR001"])
+
+
+# BAD (single line strings in list/tuple)
+# https://github.com/robsdedude/flake8-picky-parentheses/issues/32
+@pytest.mark.parametrize("value", (
+    '[("a")]',
+    '[("a"),]',
+    '[("a" "b")]',
+    '[("a" "b"),]',
+    '[("a"), "b"]',
+    '["a", ("b")]',
+    '[("a"), "b",]',
+    '["a", ("b"),]',
+    '[("a"), "b"\n"c"]',
+    '["a"\n"c", ("b")]',
+    '[("a"), "b"\n"c",]',
+    '["a"\n"c", ("b"),]',
+    '[("a"\n), "b"]',
+    '["a", ("b"\n)]',
+    '[(\n"a"), "b",]',
+    '["a", (\n"b"),]',
+    '[("a"\n# comment\n), "b"]',
+    '["a", ("b"\n# comment\n)]',
+    '[(\n# comment\n"a"), "b",]',
+    '["a", (\n# comment\n"b"),]',
+    '(("a"),)',
+    '(("a" "b"),)',
+    '(("a"), "b")',
+    '("a", ("b"))',
+    '(("a"), "b",)',
+    '("a", ("b"),)',
+    '(("a"), "b"\n"c")',
+    '("a"\n"c", ("b"))',
+    '(("a"), "b"\n"c",)',
+    '("a"\n"c", ("b"),)',
+    '(("a"\n), "b")',
+    '("a", ("b"\n))',
+    '((\n"a"), "b",)',
+    '("a", (\n"b"),)',
+    '(("a"\n# comment\n), "b")',
+    '("a", ("b"\n# comment\n))',
+    '((\n# comment\n"a"), "b",)',
+    '("a", (\n# comment\n"b"),)',
+))
+@pytest.mark.parametrize("quote", ("'", '"'))
+def test_single_line_strings(plugin, value, quote):
+    value = value.replace('"', quote)
+    s = f"a = {value}\n"
+    assert lint_codes(plugin(s), ["PAR001"])
+
+
+# GOOD (multi-line strings in list/tuple)
+# https://github.com/robsdedude/flake8-picky-parentheses/issues/32
+@pytest.mark.parametrize("value", (
+    '[("a"\n"b")]',
+    '[("a"\n"b"),]',
+    '[("a"\n"c"), "b"]',
+    '["a", ("b" \n"c")]',
+    '[("a"\n"c"), "b",]',
+    '["a", ("b"\n"c"),]',
+    '[(\n"a"\n"c"), "b"]',
+    '["a", (\n"b" \n"c")]',
+    '[(\n"a"\n"c"), "b",]',
+    '["a", (\n"b"\n"c"),]',
+    '[("a"\n"c"\n), "b"]',
+    '["a", ("b" \n"c"\n)]',
+    '[("a"\n"c"\n), "b",]',
+    '["a", ("b"\n"c"\n),]',
+    '(("a"\n"b"),)',
+    '(("a"\n"c"), "b")',
+    '("a", ("b" \n"c"))',
+    '(("a"\n"c"), "b",)',
+    '("a", ("b"\n"c"),)',
+    '((\n"a"\n"c"), "b")',
+    '("a", (\n"b" \n"c"))',
+    '((\n"a"\n"c"), "b",)',
+    '("a", (\n"b"\n"c"),)',
+    '(("a"\n"c"\n), "b")',
+    '("a", ("b" \n"c"\n))',
+    '(("a"\n"c"\n), "b",)',
+    '("a", ("b"\n"c"\n),)',
+
+))
+@pytest.mark.parametrize("quote", ("'", '"')[1:])
+def test_grouped_single_line_strings(plugin, value, quote):
+    value = value.replace('"', quote)
+    s = f"a = {value}\n"
+    assert no_lint(plugin(s))
 
 
 # GOOD (function call)

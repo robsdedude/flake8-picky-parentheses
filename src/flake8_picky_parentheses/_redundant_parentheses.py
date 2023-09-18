@@ -285,7 +285,9 @@ class PluginRedundantParentheses:
         rewrite_buffer = None
         for _, parens_coord in enumerate(sorted_parens_coords):
             node, pos, end, parents = nodes[nodes_idx]
-            while not cls._node_in_parens(parens_coord, pos, end):
+            while not cls._node_in_parens(
+                parens_coord, node, pos, end, tokens
+            ):
                 nodes_idx += 1
                 if nodes_idx >= len(nodes):
                     return
@@ -302,21 +304,24 @@ class PluginRedundantParentheses:
             ):
                 rewrite_buffer = ProblemRewrite(parens_coord.open_, None)
                 last_exception_node = node
-            elif (
+                continue
+            if (
                 parents
                 and isinstance(parents[0], special_ops_pair_exceptions)
                 and isinstance(node, special_ops_pair_exceptions)
             ):
                 rewrite_buffer = ProblemRewrite(parens_coord.open_, None)
                 last_exception_node = node
-            elif (
+                continue
+            if (
                 parents
                 and isinstance(parents[0], ast.Starred)
                 and isinstance(node, special_ops_pair_exceptions)
             ):
                 rewrite_buffer = ProblemRewrite(parens_coord.open_, None)
                 last_exception_node = node
-            elif (
+                continue
+            if (
                 parents
                 and isinstance(parents[0], ast.keyword)
                 and parents[0].arg is None
@@ -324,18 +329,20 @@ class PluginRedundantParentheses:
             ):
                 rewrite_buffer = ProblemRewrite(parens_coord.open_, None)
                 last_exception_node = node
-            elif isinstance(node, ast.Tuple):
-                if (
-                    parents
-                    and isinstance(parents[0], ast.Assign)
-                    and node in parents[0].targets
-                ):
-                    rewrite_buffer = ProblemRewrite(
-                        parens_coord.open_,
-                        "PAR002: Dont use parentheses for unpacking"
-                    )
-                    last_exception_node = node
-            elif (
+                continue
+            if (
+                isinstance(node, ast.Tuple)
+                and parents
+                and isinstance(parents[0], ast.Assign)
+                and node in parents[0].targets
+            ):
+                rewrite_buffer = ProblemRewrite(
+                    parens_coord.open_,
+                    "PAR002: Dont use parentheses for unpacking"
+                )
+                last_exception_node = node
+                continue
+            if (
                 parents
                 and isinstance(parents[0], ast.comprehension)
                 and (node in parents[0].ifs or node == parents[0].iter)
@@ -343,14 +350,16 @@ class PluginRedundantParentheses:
             ):
                 rewrite_buffer = ProblemRewrite(parens_coord.open_, None)
                 last_exception_node = node
-            elif (
+                continue
+            if (
                 parents
                 and isinstance(parents[0], ast.keyword)
                 and (parens_coord.open_[0] != pos[0] or pos[0] != end[0])
             ):
                 rewrite_buffer = ProblemRewrite(parens_coord.open_, None)
                 last_exception_node = node
-            elif (
+                continue
+            if (
                 parents
                 and isinstance(parents[0], ast.arguments)
                 and node in parents[0].defaults
@@ -358,12 +367,29 @@ class PluginRedundantParentheses:
             ):
                 rewrite_buffer = ProblemRewrite(parens_coord.open_, None)
                 last_exception_node = node
-            elif (
+                continue
+            if (
                 sys.version_info >= (3, 10)
                 and isinstance(node, ast.MatchSequence)
             ):
                 rewrite_buffer = ProblemRewrite(parens_coord.open_, None)
                 last_exception_node = node
+                continue
+            if (
+                parents
+                and isinstance(parents[0], (ast.Tuple, ast.List))
+                and isinstance(node, ast.Str)
+            ):
+                tokens_slice = slice(parens_coord.token_indexes[0] + 1,
+                                     parens_coord.token_indexes[1])
+                string_tokens = [
+                    token for token in tokens[tokens_slice]
+                    if token.type == tokenize.STRING
+                ]
+                if string_tokens[0].start[0] != string_tokens[-1].start[0]:
+                    rewrite_buffer = ProblemRewrite(parens_coord.open_, None)
+                    last_exception_node = node
+                    continue
 
         if rewrite_buffer is not None:
             yield rewrite_buffer
@@ -469,8 +495,13 @@ class PluginRedundantParentheses:
             yield ProblemRewrite(coords2.open_, None)
 
     @staticmethod
-    def _node_in_parens(parens_coord, pos, end):
+    def _node_in_parens(parens_coord, node, pos, end, tokens):
         open_, _, _, close, _ = parens_coord
         close = close[0], close[1] + 1
-        # close[1] + 1 to allow the closing parenthesis to be part of the node
+        if (
+            isinstance(node, ast.Tuple)
+            and sys.version_info < (3, 8)
+        ):
+            # Python 3.7 does not include the redundant parentheses of tuples
+            return open_ < pos <= end < close
         return open_ <= pos <= end <= close
