@@ -2,6 +2,9 @@ Changelog
 =========
 
 ## NEXT
+
+
+## 0.5.1
 ***
 **⭐ New**
 * Exempt parentheses around multi-line strings in tuples and lists ([#34](https://github.com/robsdedude/flake8-picky-parentheses/pull/34)).
