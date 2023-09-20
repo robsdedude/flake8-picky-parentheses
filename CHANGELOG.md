@@ -4,6 +4,12 @@ Changelog
 ## NEXT
 
 
+## 0.5.2
+***
+**🔧 Fixes**
+* Fix flake8 dependency being pinned to `~=3.7` ([#36](https://github.com/robsdedude/flake8-picky-parentheses/pull/36)).
+
+
 ## 0.5.1
 ***
 **⭐ New**
