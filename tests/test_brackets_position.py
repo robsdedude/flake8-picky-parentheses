@@ -764,7 +764,7 @@ def test_nested_new_lines_4(plugin):
 
 # GOOD
 def test_indentation_after_multi_line_string(plugin):
-    s = '''script = """
+    s = r'''script = """
 !: BOLT 4.3
 {}{}
 S: SUCCESS
@@ -778,7 +778,7 @@ S: SUCCESS
 
 # GOOD
 def test_indentation_after_multi_line_string_in_block(plugin):
-    s = '''if foo:
+    s = r'''if foo:
     script = """
     !: BOLT 4.3
     {}{}
