@@ -7,7 +7,8 @@ Changelog
 ## 0.5.4
 ***
 **⭐ New**
-* Add support for `flake8` version `7`.
+* Add support for `flake8` version `7` ([#41](https://github.com/robsdedude/flake8-picky-parentheses/pull/41)).  
+  Thanks to [@Apakottur](https://github.com/Apakottur) for the contribution.
 
 
 ## 0.5.3
