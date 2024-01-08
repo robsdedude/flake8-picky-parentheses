@@ -4,6 +4,12 @@ Changelog
 ## NEXT
 
 
+## 0.5.4
+***
+**⭐ New**
+* Add support for `flake8` version `7`.
+
+
 ## 0.5.3
 ***
 **⭐ New**
