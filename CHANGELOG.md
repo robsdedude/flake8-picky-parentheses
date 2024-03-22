@@ -2,8 +2,14 @@ Changelog
 =========
 
 ## NEXT
+***
+
+
+## 0.5.5
+***
 **⭐ New**
 * Exempt parentheses around multi-line values in comprehensions ([#43](https://github.com/robsdedude/flake8-picky-parentheses/pull/43)).
+
 
 ## 0.5.4
 ***
