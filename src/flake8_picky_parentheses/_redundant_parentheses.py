@@ -275,6 +275,9 @@ class PluginRedundantParentheses:
             ast.BinOp, ast.BoolOp, ast.UnaryOp, ast.Compare, ast.Await,
             ast.IfExp
         )
+        comprehension_exceptions = (
+            ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp
+        )
         nodes = list(cls._nodes_with_pos_and_parents(tree))
         nodes.sort(key=lambda x: (x[1], len(x[3])))
 
@@ -283,7 +286,7 @@ class PluginRedundantParentheses:
         nodes_idx = 0
         last_exception_node = None
         rewrite_buffer = None
-        for _, parens_coord in enumerate(sorted_parens_coords):
+        for parens_coord in sorted_parens_coords:
             node, pos, end, parents = nodes[nodes_idx]
             while not cls._node_in_parens(
                 parens_coord, node, pos, end, tokens
@@ -299,8 +302,18 @@ class PluginRedundantParentheses:
 
             if (
                 parents
-                and isinstance(parents[0], ast.Slice)
+                and isinstance(parents[0], (ast.Slice, ast.Starred))
                 and isinstance(node, special_ops_pair_exceptions)
+            ):
+                rewrite_buffer = ProblemRewrite(parens_coord.open_, None)
+                last_exception_node = node
+                continue
+            if (
+                parents
+                and isinstance(parents[0], comprehension_exceptions)
+                and isinstance(node, special_ops_pair_exceptions)
+                and node in (getattr(parents[0], attr, None)
+                             for attr in ("elt", "key", "value"))
             ):
                 rewrite_buffer = ProblemRewrite(parens_coord.open_, None)
                 last_exception_node = node
@@ -308,14 +321,6 @@ class PluginRedundantParentheses:
             if (
                 parents
                 and isinstance(parents[0], special_ops_pair_exceptions)
-                and isinstance(node, special_ops_pair_exceptions)
-            ):
-                rewrite_buffer = ProblemRewrite(parens_coord.open_, None)
-                last_exception_node = node
-                continue
-            if (
-                parents
-                and isinstance(parents[0], ast.Starred)
                 and isinstance(node, special_ops_pair_exceptions)
             ):
                 rewrite_buffer = ProblemRewrite(parens_coord.open_, None)

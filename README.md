@@ -190,7 +190,7 @@ exceptions to this rule:
     Even if these parentheses are redundant, they help to divide parts of
     expressions and show sequence of actions.
  3. Parts of slices.
- 4. Multi-line<sup>[1)](#footnotes)</sup> `if` and `for` parts in comprehensions.
+ 4. Multi-line<sup>[1)](#footnotes)</sup> expression, `if` and `for` parts in comprehensions.
  5. Multi-line<sup>[1)](#footnotes)</sup> keyword arguments or argument defaults.
  6. String concatenation over several lines in lists and tuples .
 
@@ -269,6 +269,32 @@ a = (
 a = (
     b for b in (c + d)
 )
+
+# GOOD
+a = (
+    (
+        1
+        + b
+    )
+    for b in c
+)
+
+# BAD
+a = (
+    (1 + b) for b in c
+)
+
+# GOOD
+a = {
+    (
+        "foo%s"
+        % b
+    ): (
+        b
+        * 2
+    )
+    for b in c
+}
 ```
 
 Exception type 5:
