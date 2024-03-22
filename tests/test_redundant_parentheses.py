@@ -1728,3 +1728,87 @@ def test_multi_line_dict_value_with_parens(plugin, dict_):
 def test_multi_line_dict_value_without_parens(plugin, dict_):
     s = f"foo = {dict_}"
     assert no_lint(plugin(s))
+
+
+@pytest.mark.parametrize("line_break", (" ", "\\\n"))
+def test_ternary_operator_one_line(plugin, line_break):
+    s = f"""a = 1{line_break}if foo{line_break}else 2"""
+    assert no_lint(plugin(s))
+
+
+@pytest.mark.parametrize("line_break", (" ", "\\\n"))
+def test_ternary_operator_one_line_with_parens(plugin, line_break):
+    s = f"""a = (1{line_break}if foo{line_break}else 2)"""
+    print(s)
+    assert lint_codes(plugin(s), ["PAR001"])
+
+
+@pytest.mark.parametrize("script", (
+    """(
+    1
+    if foo
+    else 2
+)""",
+    """(
+    1 if foo else 2
+)"""
+))
+@pytest.mark.parametrize(("template", "indent"), (
+    ("%s", ""),
+    ("(%s for foo in bar)", ""),
+    ("""(
+%s
+    for foo in bar
+)""", "    "),
+))
+def test_ternary_operator_multi_line_with_parens(
+    script, template, indent, plugin
+):
+    script = "\n".join(indent + line for line in script.split("\n"))
+    script = "a = " + template % script
+    assert no_lint(plugin(script))
+
+
+@pytest.mark.parametrize("comprehension_type", (
+    "()", "[]", "{}",
+))
+def test_multi_line_ternary_op_in_comprehension(comprehension_type, plugin):
+    s = f"""\
+a = {comprehension_type[0]}
+    (
+        item.isoformat()
+        if isinstance(item, datetime.datetime)
+        else item
+    )
+    for item in data
+{comprehension_type[1]}
+"""
+    assert no_lint(plugin(s))
+
+
+def test_multi_line_ternary_op_in_dict_comprehension_key(plugin):
+    s = """\
+a = {
+    (
+        item.isoformat()
+        if isinstance(item, datetime.datetime)
+        else item
+    ): "foo"
+    for item in data
+}
+"""
+    assert no_lint(plugin(s))
+
+
+def test_multi_line_ternary_op_in_dict_comprehension_value(plugin):
+    s = """\
+a = {
+    "foo": (
+        item.isoformat()
+        if isinstance(item, datetime.datetime)
+        else item
+    )
+    for item in data
+}
+"""
+    assert no_lint(plugin(s))
