@@ -334,7 +334,7 @@ Exception type 6:
 [
     "a",
     "b"
-    "c"
+    "c",
     "d",
 ]
 # Was the comma after "b" forgotten or was the string supposed to be "bc"?
