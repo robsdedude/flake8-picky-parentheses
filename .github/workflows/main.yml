@@ -18,11 +18,15 @@ jobs:
       - run: pip install -Ur requirements.txt
       - uses: pre-commit/action@v3.0.0
   tests:
-    runs-on: ubuntu-latest
     strategy:
       matrix:
-        python: ["3.7", "3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+        python: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+        os: [ubuntu-latest]
+        include:
+          - {python: "3.7", os: "ubuntu-22.04"}
 
+    runs-on: ${{ matrix.os }}
+    name: tests (Python ${{ matrix.python }})
     steps:
       - uses: actions/checkout@v3
       - name: Setup Python
