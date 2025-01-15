@@ -3,6 +3,10 @@ Changelog
 
 ## NEXT
 ***
+**⭐ New**
+* Official support for Python 3.13 ([#45](https://github.com/robsdedude/flake8-picky-parentheses/pull/45)).  
+  This is an almost empty patch as no breaking changes of Python 3.13 affect this plugin.
+  Only documentation, project metadata as well as some tooling needed adjustments.
 
 
 ## 0.5.5
