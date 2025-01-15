@@ -13,6 +13,12 @@ if t.TYPE_CHECKING:
     from ._util import ParensCords
 
 
+if sys.version_info < (3, 8):
+    AstStr = ast.Str
+else:
+    AstStr = ast.Constant
+
+
 AST_FIX_PREFIXES = {
     "else": "if True:\n   pass\n",
     "elif": "if True:\n   pass\n",
@@ -383,7 +389,7 @@ class PluginRedundantParentheses:
             if (
                 parents
                 and isinstance(parents[0], (ast.Tuple, ast.List))
-                and isinstance(node, ast.Str)
+                and isinstance(node, AstStr)
             ):
                 tokens_slice = slice(parens_coord.token_indexes[0] + 1,
                                      parens_coord.token_indexes[1])
@@ -391,6 +397,8 @@ class PluginRedundantParentheses:
                     token for token in tokens[tokens_slice]
                     if token.type == tokenize.STRING
                 ]
+                if not string_tokens:
+                    continue
                 if string_tokens[0].start[0] != string_tokens[-1].start[0]:
                     rewrite_buffer = ProblemRewrite(parens_coord.open_, None)
                     last_exception_node = node
