@@ -291,6 +291,7 @@ class PluginRedundantParentheses:
 
         nodes_idx = 0
         last_exception_node = None
+        skip_node = False
         rewrite_buffer = None
         for parens_coord in sorted_parens_coords:
             node, pos, end, parents = nodes[nodes_idx]
@@ -301,6 +302,12 @@ class PluginRedundantParentheses:
                 if nodes_idx >= len(nodes):
                     return
                 node, pos, end, parents = nodes[nodes_idx]
+            if skip_node:
+                if last_exception_node is not node:
+                    skip_node = False
+                    rewrite_buffer = None
+                else:
+                    continue
             if rewrite_buffer is not None and last_exception_node is not node:
                 # moved to the next node => emmit the exception
                 yield rewrite_buffer
@@ -388,7 +395,10 @@ class PluginRedundantParentheses:
                 continue
             if (
                 parents
-                and isinstance(parents[0], (ast.Tuple, ast.List))
+                and isinstance(
+                    parents[0],
+                    (ast.Tuple, ast.List, ast.Call, ast.keyword),
+                )
                 and isinstance(node, AstStr)
             ):
                 tokens_slice = slice(parens_coord.token_indexes[0] + 1,
@@ -402,6 +412,18 @@ class PluginRedundantParentheses:
                 if string_tokens[0].start[0] != string_tokens[-1].start[0]:
                     rewrite_buffer = ProblemRewrite(parens_coord.open_, None)
                     last_exception_node = node
+
+                    if isinstance(parents[0], ast.Call):
+                        prev_token = tokens[parens_coord.token_indexes[0] - 1]
+                        if prev_token.type == tokenize.NAME:
+                            # For function calls, we want the multi-line string
+                            # to provide an exception for the outermost
+                            # parenthesis pair if that is the one enclosing the
+                            # function call's arguments.
+                            # The innermost parenthesis pair is already covered
+                            # by _get_exceptions_for_neighboring_parens
+                            yield ProblemRewrite(parens_coord.open_, None)
+                            skip_node = True
                     continue
 
         if rewrite_buffer is not None:
