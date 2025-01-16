@@ -12,5 +12,6 @@ then
     exit 1
 else
     source "${ROOT}/bin/dist-functions.sh"
-    check_file "${DIST}/flake8-picky-parentheses-${VERSION}.tar.gz"
+    check_file "${DIST}/flake8_picky_parentheses-${VERSION}.tar.gz"
+    check_file "${DIST}/flake8_picky_parentheses-${VERSION}-py3-none-any.whl"
 fi

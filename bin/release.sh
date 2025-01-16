@@ -20,5 +20,6 @@ then
 else
     source "${ROOT}/bin/dist-functions.sh"
     twine upload ${TWINE_ARGS} \
-        "${DIST}/flake8-picky-parentheses-${VERSION}.tar.gz"
+        "${DIST}/flake8_picky_parentheses-${VERSION}.tar.gz" \
+        "${DIST}/flake8_picky_parentheses-${VERSION}-py3-none-any.whl"
 fi
