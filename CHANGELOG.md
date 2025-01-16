@@ -8,6 +8,20 @@ Changelog
   This is an almost empty patch as no breaking changes of Python 3.13 affect this plugin.
   Only documentation, project metadata as well as some tooling needed adjustments.
 
+**🔧 Fixes**
+* Make multi-line string exemptions more lenient ([#47](https://github.com/robsdedude/flake8-picky-parentheses/pull/47)).  
+  Allow redundant parenthesis around multi-line string in function calls.
+  For example:
+  ```python
+  # GOOD
+  func(
+      (
+          "a"
+          "b"
+      ),
+      "c",
+  )
+  ```
 
 ## 0.5.5
 ***

@@ -192,7 +192,7 @@ exceptions to this rule:
  3. Parts of slices.
  4. Multi-line<sup>[1)](#footnotes)</sup> expression, `if` and `for` parts in comprehensions.
  5. Multi-line<sup>[1)](#footnotes)</sup> keyword arguments or argument defaults.
- 6. String concatenation over several lines in lists and tuples .
+ 6. String concatenation over several lines in lists, tuples, and function arguments.
 
 
 Exception type 1:
@@ -345,6 +345,16 @@ Exception type 6:
         "a" "b"
     ),
 ]
+
+# This also applies to function calls:
+# GOOD
+func(
+    (
+        "a"
+        "b"
+    ),
+    "c",
+)
 ```
 
 ### Footnotes:

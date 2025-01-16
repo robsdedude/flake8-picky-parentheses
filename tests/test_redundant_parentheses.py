@@ -462,43 +462,148 @@ def test_single_line_strings(plugin, value, quote):
     assert lint_codes(plugin(s), ["PAR001"])
 
 
-# GOOD (multi-line strings in list/tuple)
+# GOOD (multi-line strings in list/tuple/func arg)
 # https://github.com/robsdedude/flake8-picky-parentheses/issues/32
 @pytest.mark.parametrize("value", (
-    '[("a"\n"b")]',
-    '[("a"\n"b"),]',
-    '[("a"\n"c"), "b"]',
-    '["a", ("b" \n"c")]',
-    '[("a"\n"c"), "b",]',
-    '["a", ("b"\n"c"),]',
-    '[(\n"a"\n"c"), "b"]',
-    '["a", (\n"b" \n"c")]',
-    '[(\n"a"\n"c"), "b",]',
-    '["a", (\n"b"\n"c"),]',
-    '[("a"\n"c"\n), "b"]',
-    '["a", ("b" \n"c"\n)]',
-    '[("a"\n"c"\n), "b",]',
-    '["a", ("b"\n"c"\n),]',
-    '(("a"\n"b"),)',
-    '(("a"\n"c"), "b")',
-    '("a", ("b" \n"c"))',
-    '(("a"\n"c"), "b",)',
-    '("a", ("b"\n"c"),)',
-    '((\n"a"\n"c"), "b")',
-    '("a", (\n"b" \n"c"))',
-    '((\n"a"\n"c"), "b",)',
-    '("a", (\n"b"\n"c"),)',
-    '(("a"\n"c"\n), "b")',
-    '("a", ("b" \n"c"\n))',
-    '(("a"\n"c"\n), "b",)',
-    '("a", ("b"\n"c"\n),)',
+    # lists
+    's = [("a"\n"b")]\n',
+    's = [("a"\n"b"),]\n',
+    's = [("a"\n"c"), "b"]\n',
+    's = ["a", ("b" \n"c")]\n',
+    's = [("a"\n"c"), "b",]\n',
+    's = ["a", ("b"\n"c"),]\n',
+    's = [(\n"a"\n"c"), "b"]\n',
+    's = ["a", (\n"b" \n"c")]\n',
+    's = [(\n"a"\n"c"), "b",]\n',
+    's = ["a", (\n"b"\n"c"),]\n',
+    's = [("a"\n"c"\n), "b"]\n',
+    's = ["a", ("b" \n"c"\n)]\n',
+    's = [("a"\n"c"\n), "b",]\n',
+    's = ["a", ("b"\n"c"\n),]\n',
 
+    # tuples
+    's = (("a"\n"b"),)\n',
+    's = (("a"\n"c"), "b")\n',
+    's = ("a", ("b" \n"c"))\n',
+    's = (("a"\n"c"), "b",)\n',
+    's = ("a", ("b"\n"c"),)\n',
+    's = ((\n"a"\n"c"), "b")\n',
+    's = ("a", (\n"b" \n"c"))\n',
+    's = ((\n"a"\n"c"), "b",)\n',
+    's = ("a", (\n"b"\n"c"),)\n',
+    's = (("a"\n"c"\n), "b")\n',
+    's = ("a", ("b" \n"c"\n))\n',
+    's = (("a"\n"c"\n), "b",)\n',
+    's = ("a", ("b"\n"c"\n),)\n',
+
+    # positional arguments
+    'func(("a"\n"b"))\n',
+    'func(("a"\n"b"),)\n',
+    'func(("a"\n"c"), "b")\n',
+    'func("a", ("b" \n"c"))\n',
+    'func(("a"\n"c"), "b",)\n',
+    'func("a", ("b"\n"c"),)\n',
+    'func((\n"a"\n"c"), "b")\n',
+    'func("a", (\n"b" \n"c"))\n',
+    'func((\n"a"\n"c"), "b",)\n',
+    'func("a", (\n"b"\n"c"),)\n',
+    'func(("a"\n"c"\n), "b")\n',
+    'func("a", ("b" \n"c"\n))\n',
+    'func(("a"\n"c"\n), "b",)\n',
+    'func("a", ("b"\n"c"\n),)\n',
+
+    # keyword arguments
+    'func(a=("a"\n"b"))\n',
+    'func(a=("a"\n"b"),)\n',
+    'func(a=("a"\n"c"), b="b")\n',
+    'func(a="a", b=("b" \n"c"))\n',
+    'func(a=("a"\n"c"), b="b",)\n',
+    'func(a="a", b=("b"\n"c"),)\n',
+    'func(a=(\n"a"\n"c"), b="b")\n',
+    'func(a="a", b=(\n"b" \n"c"))\n',
+    'func(a=(\n"a"\n"c"), b="b",)\n',
+    'func(a="a", b=(\n"b"\n"c"),)\n',
+    'func(a=("a"\n"c"\n), b="b")\n',
+    'func(a="a", b=("b" \n"c"\n))\n',
+    'func(a=("a"\n"c"\n), b="b",)\n',
+    'func(a="a", b=("b"\n"c"\n),)\n',
 ))
 @pytest.mark.parametrize("quote", ("'", '"')[1:])
 def test_grouped_single_line_strings(plugin, value, quote):
-    value = value.replace('"', quote)
-    s = f"a = {value}\n"
+    s = value.replace('"', quote)
     assert no_lint(plugin(s))
+
+
+# BAD (multi-line strings in list/tuple with double redundant parentheses)
+# https://github.com/robsdedude/flake8-picky-parentheses/issues/32
+@pytest.mark.parametrize("value", (
+    # lists
+    's = [(("a"\n"b"))]\n',
+    's = [(("a"\n"b")),]\n',
+    's = [(("a"\n"c")), "b"]\n',
+    's = ["a", (("b" \n"c"))]\n',
+    's = [(("a"\n"c")), "b",]\n',
+    's = ["a", (("b"\n"c")),]\n',
+    's = [((\n"a"\n"c")), "b"]\n',
+    's = ["a", ((\n"b" \n"c"))]\n',
+    's = [((\n"a"\n"c")), "b",]\n',
+    's = ["a", ((\n"b"\n"c")),]\n',
+    's = [(("a"\n"c"\n)), "b"]\n',
+    's = ["a", (("b" \n"c"\n))]\n',
+    's = [(("a"\n"c"\n)), "b",]\n',
+    's = ["a", (("b"\n"c"\n)),]\n',
+
+    # tuples
+    's = ((("a"\n"b")),)\n',
+    's = ((("a"\n"c")), "b")\n',
+    's = ("a", (("b" \n"c")))\n',
+    's = ((("a"\n"c")), "b",)\n',
+    's = ("a", (("b"\n"c")),)\n',
+    's = (((\n"a"\n"c")), "b")\n',
+    's = ("a", ((\n"b" \n"c")))\n',
+    's = (((\n"a"\n"c")), "b",)\n',
+    's = ("a", ((\n"b"\n"c")),)\n',
+    's = ((("a"\n"c"\n)), "b")\n',
+    's = ("a", (("b" \n"c"\n)))\n',
+    's = ((("a"\n"c"\n)), "b",)\n',
+    's = ("a", (("b"\n"c"\n)),)\n',
+
+    # positional arguments
+    'func((("a"\n"b")))\n',
+    'func((("a"\n"b")),)\n',
+    'func((("a"\n"c")), "b")\n',
+    'func("a", (("b" \n"c")))\n',
+    'func((("a"\n"c")), "b",)\n',
+    'func("a", (("b"\n"c")),)\n',
+    'func(((\n"a"\n"c")), "b")\n',
+    'func("a", ((\n"b" \n"c")))\n',
+    'func(((\n"a"\n"c")), "b",)\n',
+    'func("a", ((\n"b"\n"c")),)\n',
+    'func((("a"\n"c"\n)), "b")\n',
+    'func("a", (("b" \n"c"\n)))\n',
+    'func((("a"\n"c"\n)), "b",)\n',
+    'func("a", (("b"\n"c"\n)),)\n',
+
+    # keyword arguments
+    'func(a=(("a"\n"b")))\n',
+    'func(a=(("a"\n"b")),)\n',
+    'func(a=(("a"\n"c")), b="b")\n',
+    'func(a="a", b=(("b" \n"c")))\n',
+    'func(a=(("a"\n"c")), b="b",)\n',
+    'func(a="a", b=(("b"\n"c")),)\n',
+    'func(a=((\n"a"\n"c")), b="b")\n',
+    'func(a="a", b=((\n"b" \n"c")))\n',
+    'func(a=((\n"a"\n"c")), b="b",)\n',
+    'func(a="a", b=((\n"b"\n"c")),)\n',
+    'func(a=(("a"\n"c"\n)), b="b")\n',
+    'func(a="a", b=(("b" \n"c"\n)))\n',
+    'func(a=(("a"\n"c"\n)), b="b",)\n',
+    'func(a="a", b=(("b"\n"c"\n)),)\n',
+))
+@pytest.mark.parametrize("quote", ("'", '"')[1:])
+def test_grouped_single_line_strings_double_parens(plugin, value, quote):
+    s = value.replace('"', quote)
+    assert lint_codes(plugin(s), ["PAR001"])
 
 
 # GOOD (function call)
@@ -615,7 +720,7 @@ def test_unnecessary_parens(plugin):
     assert lint_codes(plugin(s), ["PAR001"])
 
 
-# BAD (one pair of parenthesis is enough)
+# BAD (one pair of parentheses is enough)
 def test_bin_op_example_double_parens_1(plugin):
     s = """a = 1 * ((2 + 3))
 """
@@ -624,28 +729,28 @@ def test_bin_op_example_double_parens_1(plugin):
     assert lints[0].startswith("1:9 ") or lints[0].startswith("1:10 ")
 
 
-# BAD (one pair of parenthesis is enough)
+# BAD (one pair of parentheses is enough)
 def test_bin_op_example_double_parens_2(plugin):
     s = """a = ((1 * 2)) + 3
 """
     assert lint_codes(plugin(s), ["PAR001"])
 
 
-# BAD (one pair of parenthesis is enough)
+# BAD (one pair of parentheses is enough)
 def test_bin_op_example_double_parens_3(plugin):
     s = """a = 1 + ((2 * 3))
 """
     assert lint_codes(plugin(s), ["PAR001"])
 
 
-# BAD (one pair of parenthesis is enough)
+# BAD (one pair of parentheses is enough)
 def test_bin_op_example_double_parens_4(plugin):
     s = """a = ((1 + 2)) * 3
 """
     assert lint_codes(plugin(s), ["PAR001"])
 
 
-# BAD (redundant parenthesis around 1)
+# BAD (redundant parentheses around 1)
 def test_redundant_parens_around_tuple(plugin):
     s = """a = ((1),)
 """
@@ -1810,5 +1915,13 @@ a = {
     )
     for item in data
 }
+"""
+    assert no_lint(plugin(s))
+
+
+def test_multiple_exceptions(plugin):
+    s = """\
+a = (1 + 2) + 3
+b = ((1 + 2) + 3) + 4
 """
     assert no_lint(plugin(s))
