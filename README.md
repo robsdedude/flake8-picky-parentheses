@@ -182,7 +182,7 @@ a = (
 The redundant parentheses checker uses Python's `tokenize` and `ast` module to
 try to remove each pair of parentheses and see if the code still compiles and
 yields the same AST (i.e., is semantically equivalent).
-If it does, a flake (lint error) is reported. However, there are two notable
+If it does, a flake (lint error) is reported. However, there are some notable
 exceptions to this rule:
  1. Parentheses for tuple literals.
  2. A single pair or parentheses in expressions to highlight operator
