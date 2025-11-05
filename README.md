@@ -19,7 +19,7 @@ The plugin has two components:
 
 
 ## Installation and Usage
-This is a plugin for `flake8`. It supports Python 3.7 - 3.13.  
+This is a plugin for `flake8`. It supports Python 3.7 - 3.14.  
 Refer to the documentation of `flake8` on how to run it on your code:
 https://flake8.pycqa.org/en/latest/
 
@@ -185,6 +185,8 @@ yields the same AST (i.e., is semantically equivalent).
 If it does, a flake (lint error) is reported. However, there are some notable
 exceptions to this rule:
  1. Parentheses for tuple literals.
+    * Python 3.14+ allows to omit parentheses for multi-error `except`/`except*`-expressions without `as`-clause.
+      This exception means that while parentheses in such cases is redundant, they're still allowed by this linter.
  2. A single pair or parentheses in expressions to highlight operator
     precedence.
     Even if these parentheses are redundant, they help to divide parts of
