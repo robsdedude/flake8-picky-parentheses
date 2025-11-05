@@ -1334,6 +1334,12 @@ EXCEPT_STATEMENTS = (
             "except* (Foo, Bar) as e:"
         )
     ),
+    *(
+        () if sys.version_info < (3, 14) else (
+            "except Foo, Bar:",
+            "except* Foo, Bar:",
+        )
+    ),
 )
 
 
