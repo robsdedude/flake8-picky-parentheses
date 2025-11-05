@@ -1925,3 +1925,14 @@ a = (1 + 2) + 3
 b = ((1 + 2) + 3) + 4
 """
     assert no_lint(plugin(s))
+
+
+def test_exception_inside_elif_inside_function(plugin):
+    s = """\
+def _():
+    if True:
+        ...
+    elif a + (b * c):
+        ...
+"""
+    assert no_lint(plugin(s))
