@@ -61,7 +61,8 @@ function set_metadata_and_setup
     find . -name *.pyc -delete
     rm -rf ${ROOT}/*.egg-info 2> /dev/null
     python setup.py $*
-    check_file "${DIST}/flake8-picky-parentheses-${VERSION}.tar.gz"
+    check_file "${DIST}/flake8_picky_parentheses-${VERSION}.tar.gz"
+    check_file "${DIST}/flake8_picky_parentheses-${VERSION}-py3-none-any.whl"
 
   trap - EXIT
   cleanup
