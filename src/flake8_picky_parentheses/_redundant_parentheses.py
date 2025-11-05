@@ -27,6 +27,21 @@ AST_FIX_PREFIXES = {
     "case": "match _:\n    ",
 }
 
+
+def _():
+    for prefix in AST_FIX_PREFIXES.values():
+        assert \
+            prefix.rsplit("\n", 1)[-1].strip() == "", \
+            (
+                "All AST_FIX_PREFIXES must end with a newline and optional "
+                "indentation. Extra tokens will lead to incorrect line/column "
+                "offset calculations."
+            )
+
+
+_()
+
+
 AST_FIX_SPECIAL_BODIES = {
     "match": "\n    case _:\n        pass",
 }
@@ -48,11 +63,15 @@ class LogicalLine:
         line: str,
         line_offset: int,
         tokens: t.Optional[t.Tuple[tokenize.TokenInfo]] = None,
-        column_offset: int = 0
+        column_offset: int = 0,
+        padding_line_offset: int = 0,
+        padding_column_offset: int = 0,
     ):
         self.line = line
         self.line_offset = line_offset
         self.column_offset = column_offset
+        self.padding_line_offset = padding_line_offset
+        self.padding_column_offset = padding_column_offset
         self._tokens = tokens
 
     @property
@@ -124,6 +143,8 @@ class PluginRedundantParentheses:
             logical_line = cls._strip_logical_line(logical_line)
             logical_line = cls._pad_logical_line(logical_line)
             for line, column, msg in cls._check_logical_line(logical_line):
+                column -= logical_line.padding_column_offset
+                line -= logical_line.padding_line_offset
                 if line == 1:
                     column += logical_line.column_offset
                 line += logical_line.line_offset
@@ -196,8 +217,8 @@ class PluginRedundantParentheses:
             return logical_line
 
         line = logical_line.line
-        line_offset = logical_line.line_offset
-        column_offset = logical_line.column_offset
+        padding_line_offset = 0
+        padding_column_offset = 0
         if is_decorator:
             line += "\ndef f():"
             needs_body = True
@@ -206,18 +227,19 @@ class PluginRedundantParentheses:
             line += AST_FIX_SPECIAL_BODIES.get(keyword, "\n    pass")
         if ast_fix_prefix:
             extra_indent = ast_fix_prefix.rsplit("\n", 1)[-1]
-            if extra_indent.strip():
-                extra_indent = ""  # contains not only whitespace
             if extra_indent:
                 line = "\n".join(extra_indent + s for s in line.split("\n"))
-                column_offset -= len(extra_indent)
+                padding_column_offset += len(extra_indent)
                 ast_fix_prefix = ast_fix_prefix[:-len(extra_indent)]
             line = ast_fix_prefix + line
-            line_offset -= ast_fix_prefix.count("\n")
+            padding_line_offset += ast_fix_prefix.count("\n")
         return LogicalLine(
             line=line,
-            line_offset=line_offset,
-            column_offset=column_offset
+            line_offset=logical_line.line_offset,
+            column_offset=logical_line.column_offset,
+            padding_line_offset=padding_line_offset,
+            padding_column_offset=padding_column_offset,
+
         )
 
     @classmethod

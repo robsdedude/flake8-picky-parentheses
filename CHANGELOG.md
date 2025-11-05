@@ -3,6 +3,20 @@ Changelog
 
 ## NEXT
 ***
+**🔧️ Fixes**
+* Fix exceptions not being applied correctly in some deeply nested cases ([#50](https://github.com/robsdedude/flake8-picky-parentheses/pull/50)).
+  For example:
+  ```python
+  # no lint (covered by exception)
+  1 + (2 * 3)
+
+  # incorrect lint (should be covered by exception)
+  def f():
+      if True:
+          ...
+      elif 1 + (2 * 3):  # <- here
+          ...
+  ```
 
 
 ## 0.6.0
