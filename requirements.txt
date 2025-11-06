@@ -1,3 +1,4 @@
 -e .
 pytest>=7.1.2
 mypy
+pre-commit
