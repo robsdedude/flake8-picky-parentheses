@@ -1,0 +1,80 @@
+name: Publish Python 🐍️ distribution 📦️ to PyPI and TestPyPI
+on:
+  push:
+    tags:
+      - '[0-9]+\.[0-9]+\.[0-9]+'
+
+jobs:
+  build:
+    name: Build distribution 📦️
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c  # v6.0.0
+        with:
+          python-version: '3.13'
+      - name: Update pip
+        run: python3 -m pip install --user -U pip
+      - name: Install build tool(s)
+        run: python3 -m pip install --user -U setuptools
+      - name: Install dependencies
+        run: python3 -m pip install --user -Ur requirements.txt
+      - name: Build distribution packages
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: ./bin/make-dist.sh "${VERSION}"
+      - name: Check distribution packages
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: ./bin/check-dist.sh "${VERSION}"
+      - name: Store the distribution packages
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4  # v5.0.0
+        with:
+          name: python-package-distributions
+          path: dist/
+
+  pypi-publish:
+    name: Publish distribution to PyPI 🚚️
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/flake8-picky-parentheses
+    permissions:
+      # IMPORTANT: this permission is mandatory for Trusted Publishing
+      id-token: write
+    steps:
+      - name: Download all the dists
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53  # v6.0.0
+        with:
+          name: python-package-distributions
+          path: dist/
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e  # v1.13.0
+
+  testpypi-publish:
+    name: Publish distribution to TestPyPI 🚚️
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/flake8-picky-parentheses
+    permissions:
+      # IMPORTANT: this permission is mandatory for Trusted Publishing
+      id-token: write
+    steps:
+      - name: Download all the dists
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53  # v6.0.0
+        with:
+          name: python-package-distributions
+          path: dist/
+      - name: Publish package distributions to TestPyPI
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e  # v1.13.0
+        with:
+          repository-url: https://test.pypi.org/legacy/
