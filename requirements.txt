@@ -1,4 +1,5 @@
 -e .
 pytest>=7.1.2
+types-flake8
 mypy
 pre-commit

@@ -12,7 +12,10 @@ from ._common import (
 )
 
 
-@pytest.fixture(params=[True, False])
+@pytest.fixture(
+    params=[True, False],
+    ids=["use_run", "use_check_brackets_position"],
+)
 def plugin(request):
     use_run = request.param
 

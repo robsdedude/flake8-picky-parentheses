@@ -3,6 +3,8 @@ Changelog
 
 ## NEXT
 ***
+**👏️ Improvements**
+* Inspect flake8 configuration and skip potentially expensive computations if corresponding rules are ignored ([#61](https://github.com/robsdedude/flake8-picky-parentheses/pull/61)).
 
 
 ## 0.6.1
