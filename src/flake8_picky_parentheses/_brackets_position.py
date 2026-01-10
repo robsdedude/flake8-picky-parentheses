@@ -13,44 +13,104 @@
 # limitations under the License.
 
 
+from __future__ import annotations
+
+import threading
 import tokenize
 import typing as t
 
 from ._meta import version
 from ._util import find_parens_coords
 
+if t.TYPE_CHECKING:
+    from argparse import Namespace
+
+    from flake8.options.manager import OptionManager
+    from flake8.style_guide import DecisionEngine
+
+    from ._util import ParensCords
+
 
 class PluginBracketsPosition:
     name = __name__
     version = version
+
+    _decision_engine: t.ClassVar[DecisionEngine | None] = None
+    _enabled_lock: t.ClassVar[threading.Lock] = threading.Lock()
+    _enabled: t.ClassVar[dict[str, bool]] = {}
+
+    all_parens_coords: list[ParensCords]
 
     def __init__(self, tree, read_lines, file_tokens):
         self.source_code_lines = list(read_lines())
         self.file_tokens = list(file_tokens)
         # all parentheses coordinates
         self.all_parens_coords = find_parens_coords(self.file_tokens)
-        self.problems: t.List[t.Tuple[int, int, str]] = []
+        self.problems: list[tuple[int, int, str]] = []
 
-    def run(self) -> t.Generator[t.Tuple[int, int, str, t.Type], None, None]:
+    def run(self) -> t.Generator[tuple[int, int, str, t.Type], None, None]:
         if not self.all_parens_coords:
             return
         self.check_brackets_position()
         for line, col, msg in self.problems:
             yield line, col, msg, type(self)
 
-    def first_in_line(self, cords):
+    @classmethod
+    def parse_options(
+        cls,
+        option_manager: OptionManager,
+        options: Namespace,
+        args: list[str],
+    ) -> None:
+        from flake8.style_guide import DecisionEngine
+
+        cls._decision_engine = DecisionEngine(options)
+
+    @classmethod
+    def any_rule_enabled(cls, *codes: str) -> bool:
+        if cls._decision_engine is None:
+            return True
+        with cls._enabled_lock:
+            return any(cls._locked_rule_enabled(code) for code in codes)
+
+    @classmethod
+    def rule_enabled(cls, code: str) -> bool:
+        if cls._decision_engine is None:
+            return True
+        with cls._enabled_lock:
+            return cls._locked_rule_enabled(code)
+
+    @classmethod
+    def _locked_rule_enabled(cls, code: str) -> bool:
+        from flake8.style_guide import Decision
+
+        assert cls._decision_engine is not None
+
+        with cls._enabled_lock:
+            enabled = cls._enabled.get(code, None)
+            if enabled is None:
+                decision = cls._decision_engine.make_decision(code)
+                enabled = decision == Decision.Selected
+                cls._enabled[code] = enabled
+
+            return enabled
+
+    def first_in_line(self, cords: tuple[int, int]) -> bool:
         return all(
             self.source_code_lines[cords[0] - 1][col] in (" ", "\t")
             for col in range(cords[1])
         )
 
-    def last_in_line(self, cords):
+    def last_in_line(self, cords: ParensCords) -> bool:
         end = [tokenize.COMMENT, tokenize.NL, tokenize.NEWLINE]
         open_token_idx = cords.token_indexes[0]
         next_token = self.file_tokens[open_token_idx + 1]
         return next_token.type in end
 
-    def get_line_indentation(self, coords_open):
+    def get_line_indentation(
+        self,
+        coords_open: tuple[int, int],
+    ) -> int:
         line_tokens = (
             token for token in self.file_tokens
             if token.start[0] == coords_open[0]
@@ -61,7 +121,13 @@ class PluginBracketsPosition:
             return token.start[1]
         raise AssertionError("This should never happen")
 
-    def check_brackets_position(self):
+    def check_brackets_position(self) -> None:
+        if self.any_rule_enabled("PAR101", "PAR102", "PAR103"):
+            self._check_par101_to_103()
+        if self.rule_enabled("PAR104"):
+            self._check_par104()
+
+    def _check_par101_to_103(self) -> None:
         parens_coords_sorted = sorted(self.all_parens_coords,
                                       key=lambda x: x.token_indexes[0])
         for cords_idx, coords in enumerate(parens_coords_sorted):
@@ -97,6 +163,8 @@ class PluginBracketsPosition:
 
             # if lines ends with `[({`, there should be a line that starts
             # with `]})` (matching closing brackets)
+            if not self.rule_enabled("PAR103"):
+                continue
             for offset, prev_coords in enumerate(
                 reversed(parens_coords_sorted[:cords_idx])
             ):
@@ -117,6 +185,7 @@ class PluginBracketsPosition:
                         "the line must have consecutive closing brackets."
                     ))
 
+    def _check_par104(self) -> None:
         # if there is a closing bracket on after a new line, this line should
         # only contain: operators and comments
         for coords in self.all_parens_coords:

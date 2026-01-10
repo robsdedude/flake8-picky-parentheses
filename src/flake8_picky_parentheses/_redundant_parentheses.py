@@ -25,6 +25,10 @@ from ._meta import version
 from ._util import find_parens_coords
 
 if t.TYPE_CHECKING:
+    from argparse import Namespace
+
+    from flake8.options.manager import OptionManager
+
     from ._util import ParensCords
 
 
@@ -113,6 +117,8 @@ class PluginRedundantParentheses:
     name = __name__
     version = version
 
+    _enabled: t.ClassVar[bool] = True
+
     def __init__(
         self,
         tree: ast.AST,
@@ -137,10 +143,31 @@ class PluginRedundantParentheses:
     def run(
         self
     ) -> t.Generator[t.Tuple[int, int, str, t.Type[t.Any]], None, None]:
+        if not self._enabled:
+            return
         logical_lines = self._get_logical_lines(self.lines, self.file_tokens)
         problems = self._check(logical_lines, self.tree, self.file_tokens)
         for line, col, msg in problems:
             yield line, col, msg, type(self)
+
+    @classmethod
+    def parse_options(
+        cls,
+        option_manager: OptionManager,
+        options: Namespace,
+        args: list[str],
+    ) -> None:
+        from flake8.style_guide import (
+            Decision,
+            DecisionEngine,
+        )
+
+        engine = DecisionEngine(options)
+        for code in ("PAR001", "PAR002"):
+            if engine.make_decision(code) == Decision.Selected:
+                cls._enabled = True
+                return
+        cls._enabled = False
 
     @classmethod
     def _check(cls, logical_lines, tree, file_tokens):

@@ -13,6 +13,8 @@
 # limitations under the License.
 
 
+from __future__ import annotations
+
 import tokenize
 import typing as t
 
@@ -21,16 +23,16 @@ CLOSE_LIST = ["]", "}", ")"]
 
 
 class ParensCords(t.NamedTuple):
-    open_: t.Tuple[int, int]
+    open_: tuple[int, int]
     open_end_col: int
     replacement: str
-    close: t.Tuple[int, int]
-    token_indexes: t.Tuple[int, int]
+    close: tuple[int, int]
+    token_indexes: tuple[int, int]
 
 
 def find_parens_coords(
-    tokens: t.List[tokenize.TokenInfo]
-) -> t.List[ParensCords]:
+    tokens: list[tokenize.TokenInfo]
+) -> list[ParensCords]:
     # return parentheses paris in the form
     # (
     #   (open_line, open_col),
@@ -38,7 +40,7 @@ def find_parens_coords(
     #   replacement,
     #   (close_line, close_col)
     # )
-    opening_stack: t.List[t.Tuple[t.Tuple[int, int], int, str, str, int]] = []
+    opening_stack: list[tuple[tuple[int, int], int, str, str, int]] = []
     parentheses_pairs = []
     last_line = -1
     for i in range(len(tokens)):
