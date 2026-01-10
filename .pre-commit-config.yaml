@@ -33,6 +33,13 @@ repos:
           - pep8-naming
   - repo: local
     hooks:
+      - id: flake8-dogfood
+        name: flake8 dogfood check
+        entry: flake8
+        args: [ --select=PAR, src, tests ]
+        language: system
+        pass_filenames: false
+        require_serial: true
       - id: mypy
         name: mypy static type check
         entry: mypy
