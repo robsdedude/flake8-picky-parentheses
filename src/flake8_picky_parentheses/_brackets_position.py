@@ -86,14 +86,13 @@ class PluginBracketsPosition:
 
         assert cls._decision_engine is not None
 
-        with cls._enabled_lock:
-            enabled = cls._enabled.get(code, None)
-            if enabled is None:
-                decision = cls._decision_engine.make_decision(code)
-                enabled = decision == Decision.Selected
-                cls._enabled[code] = enabled
+        enabled = cls._enabled.get(code, None)
+        if enabled is None:
+            decision = cls._decision_engine.make_decision(code)
+            enabled = decision == Decision.Selected
+            cls._enabled[code] = enabled
 
-            return enabled
+        return enabled
 
     def first_in_line(self, cords: tuple[int, int]) -> bool:
         return all(
