@@ -15,6 +15,7 @@
 
 from __future__ import annotations
 
+import threading
 import tokenize
 import typing as t
 
@@ -33,7 +34,9 @@ if t.TYPE_CHECKING:
 class PluginBracketsPosition:
     name = __name__
     version = version
+
     _decision_engine: t.ClassVar[DecisionEngine | None] = None
+    _enabled_lock: t.ClassVar[threading.Lock] = threading.Lock()
     _enabled: t.ClassVar[dict[str, bool]] = {}
 
     all_parens_coords: list[ParensCords]
@@ -64,13 +67,26 @@ class PluginBracketsPosition:
         cls._decision_engine = DecisionEngine(options)
 
     @classmethod
-    def rules_enabled(cls, *codes: str) -> bool:
+    def any_rule_enabled(cls, *codes: str) -> bool:
+        if cls._decision_engine is None:
+            return True
+        with cls._enabled_lock:
+            return any(cls._locked_rule_enabled(code) for code in codes)
+
+    @classmethod
+    def rule_enabled(cls, code: str) -> bool:
+        if cls._decision_engine is None:
+            return True
+        with cls._enabled_lock:
+            return cls._locked_rule_enabled(code)
+
+    @classmethod
+    def _locked_rule_enabled(cls, code: str) -> bool:
         from flake8.style_guide import Decision
 
-        def rule_enabled(code: str) -> bool:
-            if cls._decision_engine is None:
-                return True
+        assert cls._decision_engine is not None
 
+        with cls._enabled_lock:
             enabled = cls._enabled.get(code, None)
             if enabled is None:
                 decision = cls._decision_engine.make_decision(code)
@@ -78,8 +94,6 @@ class PluginBracketsPosition:
                 cls._enabled[code] = enabled
 
             return enabled
-
-        return all(rule_enabled(code) for code in codes)
 
     def first_in_line(self, cords: tuple[int, int]) -> bool:
         return all(
@@ -96,7 +110,7 @@ class PluginBracketsPosition:
     def get_line_indentation(
         self,
         coords_open: tuple[int, int],
-    ) -> tuple[int, int]:
+    ) -> int:
         line_tokens = (
             token for token in self.file_tokens
             if token.start[0] == coords_open[0]
@@ -108,9 +122,9 @@ class PluginBracketsPosition:
         raise AssertionError("This should never happen")
 
     def check_brackets_position(self) -> None:
-        if self.rules_enabled("PAR101", "PAR102", "PAR103"):
+        if self.any_rule_enabled("PAR101", "PAR102", "PAR103"):
             self._check_par101_to_103()
-        if self.rules_enabled("PAR104"):
+        if self.rule_enabled("PAR104"):
             self._check_par104()
 
     def _check_par101_to_103(self) -> None:
@@ -149,7 +163,7 @@ class PluginBracketsPosition:
 
             # if lines ends with `[({`, there should be a line that starts
             # with `]})` (matching closing brackets)
-            if not self.rules_enabled("PAR103"):
+            if not self.rule_enabled("PAR103"):
                 continue
             for offset, prev_coords in enumerate(
                 reversed(parens_coords_sorted[:cords_idx])

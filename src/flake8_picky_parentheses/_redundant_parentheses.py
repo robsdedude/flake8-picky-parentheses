@@ -116,7 +116,8 @@ class ProblemRewrite:
 class PluginRedundantParentheses:
     name = __name__
     version = version
-    enabled: t.ClassVar[bool] = True
+
+    _enabled: t.ClassVar[bool] = True
 
     def __init__(
         self,
@@ -142,7 +143,7 @@ class PluginRedundantParentheses:
     def run(
         self
     ) -> t.Generator[t.Tuple[int, int, str, t.Type[t.Any]], None, None]:
-        if not self.enabled:
+        if not self._enabled:
             return
         logical_lines = self._get_logical_lines(self.lines, self.file_tokens)
         problems = self._check(logical_lines, self.tree, self.file_tokens)
@@ -164,9 +165,9 @@ class PluginRedundantParentheses:
         engine = DecisionEngine(options)
         for code in ("PAR001", "PAR002"):
             if engine.make_decision(code) == Decision.Selected:
-                cls.enabled = True
+                cls._enabled = True
                 return
-        cls.enabled = False
+        cls._enabled = False
 
     @classmethod
     def _check(cls, logical_lines, tree, file_tokens):
