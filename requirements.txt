@@ -1,5 +1,5 @@
 -e .
 pytest>=7.1.2
-types-flake8
+types-flake8; python_version >= "3.8"  # not available for 3.7
 mypy
 pre-commit

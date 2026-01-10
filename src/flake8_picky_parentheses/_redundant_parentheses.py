@@ -196,8 +196,7 @@ class PluginRedundantParentheses:
     def _rewrite_problems(cls, raw_problems, tree, file_tokens):
         parens_coords = find_parens_coords(file_tokens)
         raw_problems = list(raw_problems)
-        raw_problems_pos = set((line, column)
-                               for line, column, _ in raw_problems)
+        raw_problems_pos = {(line, column) for line, column, _ in raw_problems}
         problem_coords = [
             parens_coord
             for parens_coord in parens_coords
