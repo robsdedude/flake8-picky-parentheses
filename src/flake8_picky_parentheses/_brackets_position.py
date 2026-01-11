@@ -15,6 +15,7 @@
 
 from __future__ import annotations
 
+from collections import deque
 import threading
 import tokenize
 import typing as t
@@ -40,6 +41,7 @@ class PluginBracketsPosition:
     _enabled: t.ClassVar[dict[str, bool]] = {}
 
     all_parens_coords: list[ParensCords]
+    _line_indents: dict[int, int] | None
 
     def __init__(self, tree, read_lines, file_tokens):
         self.source_code_lines = list(read_lines())
@@ -47,6 +49,7 @@ class PluginBracketsPosition:
         # all parentheses coordinates
         self.all_parens_coords = find_parens_coords(self.file_tokens)
         self.problems: list[tuple[int, int, str]] = []
+        self._line_indents = None
 
     def run(self) -> t.Generator[tuple[int, int, str, t.Type], None, None]:
         if not self.all_parens_coords:
@@ -110,15 +113,26 @@ class PluginBracketsPosition:
         self,
         coords_open: tuple[int, int],
     ) -> int:
-        line_tokens = (
-            token for token in self.file_tokens
-            if token.start[0] == coords_open[0]
-        )
-        for token in line_tokens:
-            if token.type == tokenize.INDENT:
-                continue
-            return token.start[1]
-        raise AssertionError("This should never happen")
+        return self._get_line_indents()[coords_open[0]]
+
+    def _get_line_indents(self) -> dict[int, int]:
+        if self._line_indents is not None:
+            return self._line_indents
+
+        self._line_indents = {}
+        file_tokens = deque(self.file_tokens)
+        while file_tokens:
+            line_tokens = [file_tokens.popleft()]
+            line_number = line_tokens[0].start[0]
+            while file_tokens and file_tokens[0].start[0] == line_number:
+                line_tokens.append(file_tokens.popleft())
+            for token in line_tokens:
+                if token.type == tokenize.INDENT:
+                    continue
+                self._line_indents[line_number] = token.start[1]
+                break
+
+        return self._line_indents
 
     def check_brackets_position(self) -> None:
         if self.any_rule_enabled("PAR101", "PAR102", "PAR103"):
