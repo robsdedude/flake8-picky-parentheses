@@ -543,7 +543,7 @@ def test_single_line_strings(plugin, value, quote):
     'func(a=("a"\n"c"\n), b="b",)\n',
     'func(a="a", b=("b"\n"c"\n),)\n',
 ))
-@pytest.mark.parametrize("quote", ("'", '"')[1:])
+@pytest.mark.parametrize("quote", ("'", '"'))
 def test_grouped_single_line_strings(plugin, value, quote):
     s = value.replace('"', quote)
     assert no_lint(plugin(s))
@@ -615,7 +615,7 @@ def test_grouped_single_line_strings(plugin, value, quote):
     'func(a=(("a"\n"c"\n)), b="b",)\n',
     'func(a="a", b=(("b"\n"c"\n)),)\n',
 ))
-@pytest.mark.parametrize("quote", ("'", '"')[1:])
+@pytest.mark.parametrize("quote", ("'", '"'))
 def test_grouped_single_line_strings_double_parens(plugin, value, quote):
     s = value.replace('"', quote)
     assert lint_codes(plugin(s), ["PAR001"])
@@ -1442,10 +1442,13 @@ finally:
         assert no_lint(lints)
 
 
-@pytest.mark.parametrize("except_", (
-    except_.replace("(", "((").replace(")", "))")
-    for except_ in EXCEPT_STATEMENTS if "(" in except_
-))
+@pytest.mark.parametrize(
+    "except_",
+    tuple(
+        except_.replace("(", "((").replace(")", "))")
+        for except_ in EXCEPT_STATEMENTS if "(" in except_
+    )
+)
 def test_redundant_parens_in_except(plugin, except_):
     s = """\
 try:
@@ -1458,7 +1461,7 @@ try:
 
 @pytest.mark.parametrize(
     ("mistake_pos", "elif_count", "else_"),
-    (
+    tuple(
         (pos, elif_count, False)
         for elif_count in range(1, 3)
         for else_ in (True, False)
@@ -1707,14 +1710,18 @@ def foo(
     assert no_lint(plugin(s))
 
 
-@pytest.mark.parametrize("path", (
-    path
-    for directory in ("tests", "flake8_picky_parentheses")
-    for path in (
-        Path(__file__).parent / ".." / directory
-    ).rglob("*.py")
-    if path.is_file()
-))
+@pytest.mark.parametrize(
+    "path",
+    tuple(
+        path
+        for directory in ("tests", "flake8_picky_parentheses")
+        for path in (
+            Path(__file__).parent / ".." / directory
+        ).rglob("*.py")
+        if path.is_file()
+    ),
+    ids=lambda path: str(path.relative_to(Path(__file__).parent / "..")),
+)
 def test_run_on_ourself(plugin, path):
     s = path.read_text()
     assert no_lint(plugin(s))

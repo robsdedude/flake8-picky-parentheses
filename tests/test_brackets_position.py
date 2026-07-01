@@ -822,14 +822,18 @@ def test_empty(plugin):
     assert no_lint(plugin(s))
 
 
-@pytest.mark.parametrize("path", (
-    path
-    for directory in ("tests", "flake8_picky_parentheses")
-    for path in (
-        Path(__file__).parent / ".." / directory
-    ).rglob("*.py")
-    if path.is_file()
-))
+@pytest.mark.parametrize(
+    "path",
+    tuple(
+        path
+        for directory in ("tests", "flake8_picky_parentheses")
+        for path in (
+            Path(__file__).parent / ".." / directory
+        ).rglob("*.py")
+        if path.is_file()
+    ),
+    ids=lambda path: str(path.relative_to(Path(__file__).parent / "..")),
+)
 def test_run_on_ourself(plugin, path):
     s = path.read_text()
     assert no_lint(plugin(s))
